@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Simple neutral favicon (TA initials). This overrides any previous Lovable favicon. -->
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111827'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-family='system-ui, -apple-system, BlinkMacSystemFont, sans-serif' font-size='24' fill='%234ADE80'%3ETA%3C/text%3E%3C/svg%3E" />
+  <title>Tafsin Ahmed | WordPress Developer Portfolio</title>
+  <meta name="description"
+    content="Expert WordPress developer specializing in custom themes, plugins, and full-stack solutions. Transforming ideas into beautiful, performant websites." />
+  <meta name="author" content="Tafsin Ahmed" />
+
+  <meta property="og:title" content="Tafsin Ahmed | WordPress Developer Portfolio" />
+  <meta property="og:description"
+    content="Expert WordPress developer specializing in custom themes, plugins, and full-stack solutions." />
+  <meta property="og:type" content="website" />
+  <!-- Updated to a neutral default preview image; replace with your own if desired -->
+  <meta property="og:image" content="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&h=630&fit=crop" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@devname" />
+  <meta name="twitter:image"
+    content="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&h=630&fit=crop" />
+
+  <link rel="canonical" href="https://devname.com" />
+  <script>
+    // Uploadcare public key configuration
+    // Set your public key here or it will be read from VITE_UPLOADCARE_PUBLIC_KEY env variable
+    // Replace 'your_public_key' with your actual Uploadcare public key
+    UPLOADCARE_PUBLIC_KEY = 'your_public_key';
+  </script>
+  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
