@@ -14,7 +14,7 @@ const signInSchema = z.object({
   password: z.string().min(1, "Password is required").max(100),
 });
 
-const Auth = () => {
+const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "tafsinahmed80p@gmail.com",
@@ -57,22 +57,23 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-        const { error } = await signIn(formData.email, formData.password);
-        if (error) {
+      // Sign in existing user
+      const { error } = await signIn(formData.email, formData.password);
+      if (error) {
         console.error("Login error:", error);
-          toast({
-            title: "Sign in failed",
+        toast({
+          title: "Sign in failed",
           description: error.message || "Invalid email or password. Please try again.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Welcome back!",
-            description: "You have been signed in successfully.",
-          });
-        }
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You have been signed in successfully.",
+        });
+      }
     } catch (err) {
-      console.error("Login exception:", err);
+      console.error("Auth exception:", err);
       toast({
         title: "Sign in failed",
         description: "Unable to connect to authentication service. Please check your configuration.",
@@ -86,8 +87,8 @@ const Auth = () => {
   return (
     <Layout>
       <section className="section-padding min-h-[80vh] flex items-center">
-        <div className="container-custom max-w-md mx-auto">
-          <div className="bg-card border border-border rounded-xl p-8 animate-fade-up">
+        <div className="container-custom max-w-xl mx-auto">
+          <div className="bg-card border border-border rounded-xl p-10 animate-fade-up">
             {/* Logo */}
             <div className="flex justify-center mb-8">
               <div className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center glow-box">
@@ -105,7 +106,6 @@ const Auth = () => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -161,4 +161,5 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default Login;
+

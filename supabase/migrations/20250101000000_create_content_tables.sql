@@ -1,158 +1,159 @@
--- Create projects table
-CREATE TABLE IF NOT EXISTS public.projects (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
+-- Database schema for portfolio application using Supabase
+-- Run this SQL in your Supabase SQL Editor to create all required tables
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Projects table
+CREATE TABLE IF NOT EXISTS projects (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   image TEXT NOT NULL,
   tags TEXT[] DEFAULT '{}',
   live_url TEXT,
   github_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create services table
-CREATE TABLE IF NOT EXISTS public.services (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  icon TEXT NOT NULL,
-  title TEXT NOT NULL,
+-- Blog posts table
+CREATE TABLE IF NOT EXISTS blog_posts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) UNIQUE NOT NULL,
+  excerpt TEXT NOT NULL,
+  content TEXT NOT NULL,
+  image_url TEXT,
+  category VARCHAR(100),
+  read_time VARCHAR(50) DEFAULT '5 min read',
+  published BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Services table
+CREATE TABLE IF NOT EXISTS services (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  icon VARCHAR(100) NOT NULL,
+  title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
-  "order" INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+  "order" INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create themes table
-CREATE TABLE IF NOT EXISTS public.themes (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
+-- Themes table
+CREATE TABLE IF NOT EXISTS themes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   image TEXT NOT NULL,
   tags TEXT[] DEFAULT '{}',
   live_url TEXT,
   github_url TEXT,
-  price TEXT,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+  price VARCHAR(50),
+  file_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create plugins table
-CREATE TABLE IF NOT EXISTS public.plugins (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
+-- Plugins table
+CREATE TABLE IF NOT EXISTS plugins (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   image TEXT NOT NULL,
   tags TEXT[] DEFAULT '{}',
   live_url TEXT,
   github_url TEXT,
-  price TEXT,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+  price VARCHAR(50),
+  file_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create about_content table (single row)
-CREATE TABLE IF NOT EXISTS public.about_content (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  bio TEXT[] DEFAULT '{}',
+-- About content table (single row)
+CREATE TABLE IF NOT EXISTS about_content (
+  id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
+  bio JSONB NOT NULL DEFAULT '[]',
   skills TEXT[] DEFAULT '{}',
   stats JSONB NOT NULL DEFAULT '{}',
   image_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create contact_info table (single row)
-CREATE TABLE IF NOT EXISTS public.contact_info (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  email TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  location TEXT NOT NULL,
-  response_time TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+-- Hero content table (single row)
+CREATE TABLE IF NOT EXISTS hero_content (
+  id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
+  tagline VARCHAR(255),
+  headline_line1 VARCHAR(255),
+  headline_highlight VARCHAR(255),
+  headline_line2 VARCHAR(255),
+  subheadline TEXT,
+  name VARCHAR(255),
+  role VARCHAR(255),
+  floating_title VARCHAR(255),
+  floating_subtitle VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Enable RLS on all tables
-ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.themes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.plugins ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.about_content ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contact_info ENABLE ROW LEVEL SECURITY;
+-- Contact info table (single row)
+CREATE TABLE IF NOT EXISTS contact_info (
+  id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  location VARCHAR(255),
+  response_time VARCHAR(100),
+  smtp_host VARCHAR(255),
+  smtp_port VARCHAR(10),
+  smtp_user VARCHAR(255),
+  smtp_password VARCHAR(255),
+  smtp_from_email VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
+CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published);
+CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
+CREATE INDEX IF NOT EXISTS idx_services_order ON services("order");
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE themes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE plugins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE about_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hero_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contact_info ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies: Allow public read, authenticated write
--- Projects
-CREATE POLICY "Anyone can view projects"
-ON public.projects FOR SELECT
-USING (true);
+CREATE POLICY "Public can read projects" ON projects FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can manage projects" ON projects FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Authenticated users can manage projects"
-ON public.projects FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
+CREATE POLICY "Public can read published blog posts" ON blog_posts FOR SELECT USING (published = true OR auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can manage blog posts" ON blog_posts FOR ALL USING (auth.role() = 'authenticated');
 
--- Services
-CREATE POLICY "Anyone can view services"
-ON public.services FOR SELECT
-USING (true);
+CREATE POLICY "Public can read services" ON services FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can manage services" ON services FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Authenticated users can manage services"
-ON public.services FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
+CREATE POLICY "Public can read themes" ON themes FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can manage themes" ON themes FOR ALL USING (auth.role() = 'authenticated');
 
--- Themes
-CREATE POLICY "Anyone can view themes"
-ON public.themes FOR SELECT
-USING (true);
+CREATE POLICY "Public can read plugins" ON plugins FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can manage plugins" ON plugins FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Authenticated users can manage themes"
-ON public.themes FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
+CREATE POLICY "Public can read about content" ON about_content FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can manage about content" ON about_content FOR ALL USING (auth.role() = 'authenticated');
 
--- Plugins
-CREATE POLICY "Anyone can view plugins"
-ON public.plugins FOR SELECT
-USING (true);
+CREATE POLICY "Public can read hero content" ON hero_content FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can manage hero content" ON hero_content FOR ALL USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Authenticated users can manage plugins"
-ON public.plugins FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
--- About Content
-CREATE POLICY "Anyone can view about content"
-ON public.about_content FOR SELECT
-USING (true);
-
-CREATE POLICY "Authenticated users can manage about content"
-ON public.about_content FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
--- Contact Info
-CREATE POLICY "Anyone can view contact info"
-ON public.contact_info FOR SELECT
-USING (true);
-
-CREATE POLICY "Authenticated users can manage contact info"
-ON public.contact_info FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
--- Update blog_posts policies to allow authenticated users to manage
-DROP POLICY IF EXISTS "Authenticated users can manage blog posts" ON public.blog_posts;
-CREATE POLICY "Authenticated users can manage blog posts"
-ON public.blog_posts FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
+CREATE POLICY "Public can read contact info" ON contact_info FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can manage contact info" ON contact_info FOR ALL USING (auth.role() = 'authenticated');
 

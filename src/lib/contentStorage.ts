@@ -1,10 +1,5 @@
-// Content storage utility for managing all website content with Supabase
-// NOTE: Custom tables (projects, services, themes, plugins, about_content, contact_info)
-// need to be created in Supabase by running the migration SQL first.
-// See: supabase/migrations/20250101000000_create_content_tables.sql
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// Using 'any' types for custom Supabase tables until migration is run and types are regenerated
+// Content storage utility for managing all website content
+// Data is synced with Supabase database and falls back to localStorage
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -51,8 +46,6 @@ export interface Theme {
   liveUrl?: string;
   githubUrl?: string;
   price?: string;
-  // Optional URL to a downloadable theme file (e.g. .zip), managed only from the dashboard.
-  // This is intentionally NOT exposed on the public frontend.
   fileUrl?: string;
 }
 
@@ -65,8 +58,6 @@ export interface Plugin {
   liveUrl?: string;
   githubUrl?: string;
   price?: string;
-  // Optional URL to a downloadable plugin file (e.g. .zip), managed only from the dashboard.
-  // This is intentionally NOT exposed on the public frontend.
   fileUrl?: string;
 }
 
@@ -99,7 +90,6 @@ export interface ContactInfo {
   phone: string;
   location: string;
   responseTime: string;
-  // Optional SMTP settings for contact form (used only in dashboard / backend config, never shown publicly)
   smtpHost?: string;
   smtpPort?: string;
   smtpUser?: string;
@@ -110,112 +100,34 @@ export interface ContactInfo {
 // Helper to check if Supabase is available
 const isSupabaseAvailable = () => {
   const url = import.meta.env.VITE_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
   return !!(url && key && url !== 'https://placeholder.supabase.co' && key !== 'placeholder-key');
 };
-
-// Helper to migrate from localStorage to Supabase
-const migrateFromLocalStorage = async () => {
-  if (!isSupabaseAvailable()) return;
-
-  try {
-    // Migrate projects
-    const localProjects = localStorage.getItem('website-projects');
-    if (localProjects) {
-      const projects = JSON.parse(localProjects);
-      for (const project of projects) {
-        await (supabase as any).from('projects').upsert({
-          id: project.id,
-          title: project.title,
-          description: project.description,
-          image: project.image,
-          tags: project.tags,
-          live_url: project.liveUrl,
-          github_url: project.githubUrl,
-          created_at: project.createdAt,
-          updated_at: project.updatedAt,
-        });
-      }
-    }
-
-    // Migrate services
-    const localServices = localStorage.getItem('website-services');
-    if (localServices) {
-      const services = JSON.parse(localServices);
-      for (const service of services) {
-        await (supabase as any).from('services').upsert({
-          id: service.id,
-          icon: service.icon,
-          title: service.title,
-          description: service.description,
-          order: service.order,
-        });
-      }
-    }
-
-    // Migrate about content
-    const localAbout = localStorage.getItem('website-about');
-    if (localAbout) {
-      const about = JSON.parse(localAbout);
-      await (supabase as any).from('about_content').upsert({
-        id: 'default',
-        bio: about.bio,
-        skills: about.skills,
-        stats: about.stats,
-        image_url: about.imageUrl,
-      });
-    }
-
-    // Migrate contact info
-    const localContact = localStorage.getItem('website-contact');
-    if (localContact) {
-      const contact = JSON.parse(localContact);
-      await (supabase as any).from('contact_info').upsert({
-        id: 'default',
-        email: contact.email,
-        phone: contact.phone,
-        location: contact.location,
-        response_time: contact.responseTime,
-      });
-    }
-
-    console.log('Migration from localStorage to Supabase completed');
-  } catch (error) {
-    console.error('Migration error:', error);
-  }
-};
-
-// Run migration once
-let migrationRun = false;
-if (isSupabaseAvailable() && !migrationRun) {
-  migrationRun = true;
-  migrateFromLocalStorage();
-}
 
 // Projects
 export const getProjects = async (): Promise<Project[]> => {
   if (isSupabaseAvailable()) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((p: Record<string, any>) => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        image: p.image,
-        tags: p.tags || [],
-        liveUrl: p.live_url,
-        githubUrl: p.github_url,
-        createdAt: p.created_at,
-        updatedAt: p.updated_at,
+      return (data || []).map((p: Record<string, unknown>) => ({
+        id: p.id as string,
+        title: p.title as string,
+        description: p.description as string,
+        image: p.image as string,
+        tags: (p.tags as string[]) || [],
+        liveUrl: p.live_url as string | undefined,
+        githubUrl: p.github_url as string | undefined,
+        createdAt: p.created_at as string,
+        updatedAt: p.updated_at as string,
       }));
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Error fetching projects from database:', error);
       return getProjectsLocal();
     }
   }
@@ -230,8 +142,11 @@ const getProjectsLocal = (): Project[] => {
 export const saveProjects = async (projects: Project[]): Promise<void> => {
   if (isSupabaseAvailable()) {
     try {
-      for (const project of projects) {
-        const { error } = await (supabase as any).from('projects').upsert({
+      // Delete all existing projects
+      await supabase.from('projects').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (projects.length > 0) {
+        const projectsToInsert = projects.map(project => ({
           id: project.id,
           title: project.title,
           description: project.description,
@@ -241,12 +156,14 @@ export const saveProjects = async (projects: Project[]): Promise<void> => {
           github_url: project.githubUrl,
           created_at: project.createdAt,
           updated_at: project.updatedAt,
-        });
+        }));
+
+        const { error } = await supabase.from('projects').insert(projectsToInsert);
         if (error) throw error;
       }
       return;
     } catch (error) {
-      console.error('Error saving projects:', error);
+      console.error('Error saving projects to database:', error);
     }
   }
   localStorage.setItem('website-projects', JSON.stringify(projects));
@@ -262,7 +179,7 @@ export const addProject = async (project: Omit<Project, 'id' | 'createdAt' | 'up
 
   if (isSupabaseAvailable()) {
     try {
-      const { error } = await (supabase as any).from('projects').insert({
+      const { error } = await supabase.from('projects').insert({
         id: newProject.id,
         title: newProject.title,
         description: newProject.description,
@@ -276,7 +193,7 @@ export const addProject = async (project: Omit<Project, 'id' | 'createdAt' | 'up
       if (error) throw error;
       return newProject;
     } catch (error) {
-      console.error('Error adding project:', error);
+      console.error('Error adding project to database:', error);
     }
   }
 
@@ -289,17 +206,18 @@ export const addProject = async (project: Omit<Project, 'id' | 'createdAt' | 'up
 export const updateProject = async (id: string, updates: Partial<Project>): Promise<Project | null> => {
   if (isSupabaseAvailable()) {
     try {
-      const updateData: Record<string, any> = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateData: any = {
         updated_at: new Date().toISOString(),
       };
-      if (updates.title) updateData.title = updates.title;
-      if (updates.description) updateData.description = updates.description;
-      if (updates.image) updateData.image = updates.image;
-      if (updates.tags) updateData.tags = updates.tags;
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.image !== undefined) updateData.image = updates.image;
+      if (updates.tags !== undefined) updateData.tags = updates.tags;
       if (updates.liveUrl !== undefined) updateData.live_url = updates.liveUrl;
       if (updates.githubUrl !== undefined) updateData.github_url = updates.githubUrl;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .update(updateData)
         .eq('id', id)
@@ -309,20 +227,19 @@ export const updateProject = async (id: string, updates: Partial<Project>): Prom
       if (error) throw error;
       if (!data) return null;
 
-      const projectData: Record<string, any> = data;
       return {
-        id: projectData.id,
-        title: projectData.title,
-        description: projectData.description,
-        image: projectData.image,
-        tags: projectData.tags || [],
-        liveUrl: projectData.live_url,
-        githubUrl: projectData.github_url,
-        createdAt: projectData.created_at,
-        updatedAt: projectData.updated_at,
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        image: data.image,
+        tags: data.tags || [],
+        liveUrl: data.live_url,
+        githubUrl: data.github_url,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
       };
     } catch (error) {
-      console.error('Error updating project:', error);
+      console.error('Error updating project in database:', error);
     }
   }
 
@@ -342,11 +259,11 @@ export const updateProject = async (id: string, updates: Partial<Project>): Prom
 export const deleteProject = async (id: string): Promise<boolean> => {
   if (isSupabaseAvailable()) {
     try {
-      const { error } = await (supabase as any).from('projects').delete().eq('id', id);
+      const { error } = await supabase.from('projects').delete().eq('id', id);
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error('Error deleting project from database:', error);
       return false;
     }
   }
@@ -369,21 +286,21 @@ export const getBlogPosts = async (): Promise<BlogPost[]> => {
 
       if (error) throw error;
 
-      return (data || []).map((p: Record<string, any>) => ({
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
-        excerpt: p.excerpt,
-        content: p.content,
-        image_url: p.image_url,
-        category: p.category,
-        read_time: p.read_time || '5 min read',
-        published: p.published || false,
-        created_at: p.created_at,
-        updated_at: p.updated_at,
+      return (data || []).map((p: Record<string, unknown>) => ({
+        id: p.id as string,
+        title: p.title as string,
+        slug: p.slug as string,
+        excerpt: p.excerpt as string,
+        content: p.content as string,
+        image_url: p.image_url as string | undefined,
+        category: p.category as string,
+        read_time: (p.read_time as string) || '5 min read',
+        published: (p.published as boolean) || false,
+        created_at: p.created_at as string,
+        updated_at: p.updated_at as string,
       }));
     } catch (error) {
-      console.error('Error fetching blog posts:', error);
+      console.error('Error fetching blog posts from database:', error);
       return getBlogPostsLocal();
     }
   }
@@ -396,11 +313,71 @@ const getBlogPostsLocal = (): BlogPost[] => {
 };
 
 export const getPublishedBlogPosts = async (): Promise<BlogPost[]> => {
+  if (isSupabaseAvailable()) {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('published', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map((p: Record<string, unknown>) => ({
+        id: p.id as string,
+        title: p.title as string,
+        slug: p.slug as string,
+        excerpt: p.excerpt as string,
+        content: p.content as string,
+        image_url: p.image_url as string | undefined,
+        category: p.category as string,
+        read_time: (p.read_time as string) || '5 min read',
+        published: (p.published as boolean) || false,
+        created_at: p.created_at as string,
+        updated_at: p.updated_at as string,
+      }));
+    } catch (error) {
+      console.error('Error fetching published blog posts from database:', error);
+      const posts = await getBlogPosts();
+      return posts.filter(post => post.published);
+    }
+  }
   const posts = await getBlogPosts();
   return posts.filter(post => post.published);
 };
 
 export const getBlogPostBySlug = async (slug: string): Promise<BlogPost | null> => {
+  if (isSupabaseAvailable()) {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('slug', slug)
+        .eq('published', true)
+        .single();
+
+      if (error) throw error;
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        title: data.title,
+        slug: data.slug,
+        excerpt: data.excerpt,
+        content: data.content,
+        image_url: data.image_url,
+        category: data.category,
+        read_time: data.read_time || '5 min read',
+        published: data.published || false,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
+    } catch (error) {
+      console.error('Error fetching blog post from database:', error);
+      const posts = await getBlogPosts();
+      return posts.find(post => post.slug === slug && post.published) || null;
+    }
+  }
   const posts = await getBlogPosts();
   return posts.find(post => post.slug === slug && post.published) || null;
 };
@@ -408,8 +385,10 @@ export const getBlogPostBySlug = async (slug: string): Promise<BlogPost | null> 
 export const saveBlogPosts = async (posts: BlogPost[]): Promise<void> => {
   if (isSupabaseAvailable()) {
     try {
-      for (const post of posts) {
-        const { error } = await supabase.from('blog_posts').upsert({
+      await supabase.from('blog_posts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (posts.length > 0) {
+        const postsToInsert = posts.map(post => ({
           id: post.id,
           title: post.title,
           slug: post.slug,
@@ -421,12 +400,14 @@ export const saveBlogPosts = async (posts: BlogPost[]): Promise<void> => {
           published: post.published,
           created_at: post.created_at,
           updated_at: post.updated_at,
-        });
+        }));
+
+        const { error } = await supabase.from('blog_posts').insert(postsToInsert);
         if (error) throw error;
       }
       return;
     } catch (error) {
-      console.error('Error saving blog posts:', error);
+      console.error('Error saving blog posts to database:', error);
     }
   }
   localStorage.setItem('website-blog-posts', JSON.stringify(posts));
@@ -458,7 +439,7 @@ export const addBlogPost = async (post: Omit<BlogPost, 'id' | 'created_at' | 'up
       if (error) throw error;
       return newPost;
     } catch (error) {
-      console.error('Error adding blog post:', error);
+      console.error('Error adding blog post to database:', error);
     }
   }
 
@@ -471,16 +452,17 @@ export const addBlogPost = async (post: Omit<BlogPost, 'id' | 'created_at' | 'up
 export const updateBlogPost = async (id: string, updates: Partial<BlogPost>): Promise<BlogPost | null> => {
   if (isSupabaseAvailable()) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = {
         updated_at: new Date().toISOString(),
       };
-      if (updates.title) updateData.title = updates.title;
-      if (updates.slug) updateData.slug = updates.slug;
-      if (updates.excerpt) updateData.excerpt = updates.excerpt;
-      if (updates.content) updateData.content = updates.content;
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.slug !== undefined) updateData.slug = updates.slug;
+      if (updates.excerpt !== undefined) updateData.excerpt = updates.excerpt;
+      if (updates.content !== undefined) updateData.content = updates.content;
       if (updates.image_url !== undefined) updateData.image_url = updates.image_url;
-      if (updates.category) updateData.category = updates.category;
-      if (updates.read_time) updateData.read_time = updates.read_time;
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.read_time !== undefined) updateData.read_time = updates.read_time;
       if (updates.published !== undefined) updateData.published = updates.published;
 
       const { data, error } = await supabase
@@ -507,7 +489,7 @@ export const updateBlogPost = async (id: string, updates: Partial<BlogPost>): Pr
         updated_at: data.updated_at,
       };
     } catch (error) {
-      console.error('Error updating blog post:', error);
+      console.error('Error updating blog post in database:', error);
     }
   }
 
@@ -531,7 +513,7 @@ export const deleteBlogPost = async (id: string): Promise<boolean> => {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting blog post:', error);
+      console.error('Error deleting blog post from database:', error);
       return false;
     }
   }
@@ -547,22 +529,22 @@ export const deleteBlogPost = async (id: string): Promise<boolean> => {
 export const getServices = async (): Promise<Service[]> => {
   if (isSupabaseAvailable()) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('services')
         .select('*')
         .order('order', { ascending: true });
 
       if (error) throw error;
 
-      return (data || []).map((s: Record<string, any>) => ({
-        id: s.id,
-        icon: s.icon,
-        title: s.title,
-        description: s.description,
-        order: s.order || 0,
+      return (data || []).map((s: Record<string, unknown>) => ({
+        id: s.id as string,
+        icon: s.icon as string,
+        title: s.title as string,
+        description: s.description as string,
+        order: (s.order as number) || 0,
       }));
     } catch (error) {
-      console.error('Error fetching services:', error);
+      console.error('Error fetching services from database:', error);
       return getServicesLocal();
     }
   }
@@ -577,19 +559,23 @@ const getServicesLocal = (): Service[] => {
 export const saveServices = async (services: Service[]): Promise<void> => {
   if (isSupabaseAvailable()) {
     try {
-      for (const service of services) {
-        const { error } = await (supabase as any).from('services').upsert({
+      await supabase.from('services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (services.length > 0) {
+        const servicesToInsert = services.map(service => ({
           id: service.id,
           icon: service.icon,
           title: service.title,
           description: service.description,
           order: service.order,
-        });
+        }));
+
+        const { error } = await supabase.from('services').insert(servicesToInsert);
         if (error) throw error;
       }
       return;
     } catch (error) {
-      console.error('Error saving services:', error);
+      console.error('Error saving services to database:', error);
     }
   }
   localStorage.setItem('website-services', JSON.stringify(services));
@@ -599,25 +585,26 @@ export const saveServices = async (services: Service[]): Promise<void> => {
 export const getThemes = async (): Promise<Theme[]> => {
   if (isSupabaseAvailable()) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('themes')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((t: Record<string, any>) => ({
-        id: t.id,
-        title: t.title,
-        description: t.description,
-        image: t.image,
-        tags: t.tags || [],
-        liveUrl: t.live_url,
-        githubUrl: t.github_url,
-        price: t.price,
+      return (data || []).map((t: Record<string, unknown>) => ({
+        id: t.id as string,
+        title: t.title as string,
+        description: t.description as string,
+        image: t.image as string,
+        tags: (t.tags as string[]) || [],
+        liveUrl: t.live_url as string | undefined,
+        githubUrl: t.github_url as string | undefined,
+        price: t.price as string | undefined,
+        fileUrl: t.file_url as string | undefined,
       }));
     } catch (error) {
-      console.error('Error fetching themes:', error);
+      console.error('Error fetching themes from database:', error);
       return getThemesLocal();
     }
   }
@@ -632,8 +619,10 @@ const getThemesLocal = (): Theme[] => {
 export const saveThemes = async (themes: Theme[]): Promise<void> => {
   if (isSupabaseAvailable()) {
     try {
-      for (const theme of themes) {
-        const { error } = await (supabase as any).from('themes').upsert({
+      await supabase.from('themes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (themes.length > 0) {
+        const themesToInsert = themes.map(theme => ({
           id: theme.id,
           title: theme.title,
           description: theme.description,
@@ -642,12 +631,15 @@ export const saveThemes = async (themes: Theme[]): Promise<void> => {
           live_url: theme.liveUrl,
           github_url: theme.githubUrl,
           price: theme.price,
-        });
+          file_url: theme.fileUrl,
+        }));
+
+        const { error } = await supabase.from('themes').insert(themesToInsert);
         if (error) throw error;
       }
       return;
     } catch (error) {
-      console.error('Error saving themes:', error);
+      console.error('Error saving themes to database:', error);
     }
   }
   localStorage.setItem('website-themes', JSON.stringify(themes));
@@ -657,25 +649,26 @@ export const saveThemes = async (themes: Theme[]): Promise<void> => {
 export const getPlugins = async (): Promise<Plugin[]> => {
   if (isSupabaseAvailable()) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('plugins')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((p: Record<string, any>) => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        image: p.image,
-        tags: p.tags || [],
-        liveUrl: p.live_url,
-        githubUrl: p.github_url,
-        price: p.price,
+      return (data || []).map((p: Record<string, unknown>) => ({
+        id: p.id as string,
+        title: p.title as string,
+        description: p.description as string,
+        image: p.image as string,
+        tags: (p.tags as string[]) || [],
+        liveUrl: p.live_url as string | undefined,
+        githubUrl: p.github_url as string | undefined,
+        price: p.price as string | undefined,
+        fileUrl: p.file_url as string | undefined,
       }));
     } catch (error) {
-      console.error('Error fetching plugins:', error);
+      console.error('Error fetching plugins from database:', error);
       return getPluginsLocal();
     }
   }
@@ -690,8 +683,10 @@ const getPluginsLocal = (): Plugin[] => {
 export const savePlugins = async (plugins: Plugin[]): Promise<void> => {
   if (isSupabaseAvailable()) {
     try {
-      for (const plugin of plugins) {
-        const { error } = await (supabase as any).from('plugins').upsert({
+      await supabase.from('plugins').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (plugins.length > 0) {
+        const pluginsToInsert = plugins.map(plugin => ({
           id: plugin.id,
           title: plugin.title,
           description: plugin.description,
@@ -700,21 +695,44 @@ export const savePlugins = async (plugins: Plugin[]): Promise<void> => {
           live_url: plugin.liveUrl,
           github_url: plugin.githubUrl,
           price: plugin.price,
-        });
+          file_url: plugin.fileUrl,
+        }));
+
+        const { error } = await supabase.from('plugins').insert(pluginsToInsert);
         if (error) throw error;
       }
       return;
     } catch (error) {
-      console.error('Error saving plugins:', error);
+      console.error('Error saving plugins to database:', error);
     }
   }
   localStorage.setItem('website-plugins', JSON.stringify(plugins));
 };
 
 // About Content
-// NOTE: For reliability, about content (including profile image) currently uses localStorage only.
-// This ensures the dashboard and frontend always stay in sync even if Supabase isn't fully configured.
 export const getAboutContent = async (): Promise<AboutContent> => {
+  if (isSupabaseAvailable()) {
+    try {
+      const { data, error } = await supabase
+        .from('about_content')
+        .select('*')
+        .eq('id', 'default')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        return {
+          bio: data.bio || [],
+          skills: data.skills || [],
+          stats: data.stats || {},
+          imageUrl: data.image_url,
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching about content from database:', error);
+    }
+  }
   return getAboutContentLocal();
 };
 
@@ -746,11 +764,58 @@ const getAboutContentLocal = (): AboutContent => {
 };
 
 export const saveAboutContent = async (content: AboutContent): Promise<void> => {
+  if (isSupabaseAvailable()) {
+    try {
+      const { error } = await supabase.from('about_content').upsert({
+        id: 'default',
+        bio: content.bio,
+        skills: content.skills,
+        stats: content.stats,
+        image_url: content.imageUrl,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      return;
+    } catch (error) {
+      console.error('Error saving about content to database:', error);
+    }
+  }
   localStorage.setItem('website-about', JSON.stringify(content));
 };
 
-// Hero Content (localStorage only)
+// Hero Content
 export const getHeroContent = async (): Promise<HeroContent> => {
+  if (isSupabaseAvailable()) {
+    try {
+      const { data, error } = await supabase
+        .from('hero_content')
+        .select('*')
+        .eq('id', 'default')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        return {
+          tagline: data.tagline || '',
+          headlineLine1: data.headline_line1 || '',
+          headlineHighlight: data.headline_highlight || '',
+          headlineLine2: data.headline_line2 || '',
+          subheadline: data.subheadline || '',
+          name: data.name || '',
+          role: data.role || '',
+          floatingTitle: data.floating_title || '',
+          floatingSubtitle: data.floating_subtitle || '',
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching hero content from database:', error);
+    }
+  }
+  return getHeroContentLocal();
+};
+
+const getHeroContentLocal = (): HeroContent => {
   const data = localStorage.getItem("website-hero");
   if (data) return JSON.parse(data);
 
@@ -772,6 +837,27 @@ export const getHeroContent = async (): Promise<HeroContent> => {
 };
 
 export const saveHeroContent = async (content: HeroContent): Promise<void> => {
+  if (isSupabaseAvailable()) {
+    try {
+      const { error } = await supabase.from('hero_content').upsert({
+        id: 'default',
+        tagline: content.tagline,
+        headline_line1: content.headlineLine1,
+        headline_highlight: content.headlineHighlight,
+        headline_line2: content.headlineLine2,
+        subheadline: content.subheadline,
+        name: content.name,
+        role: content.role,
+        floating_title: content.floatingTitle,
+        floating_subtitle: content.floatingSubtitle,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      return;
+    } catch (error) {
+      console.error('Error saving hero content to database:', error);
+    }
+  }
   localStorage.setItem("website-hero", JSON.stringify(content));
 };
 
@@ -779,7 +865,7 @@ export const saveHeroContent = async (content: HeroContent): Promise<void> => {
 export const getContactInfo = async (): Promise<ContactInfo> => {
   if (isSupabaseAvailable()) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('contact_info')
         .select('*')
         .eq('id', 'default')
@@ -788,21 +874,20 @@ export const getContactInfo = async (): Promise<ContactInfo> => {
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
-        const contactData: Record<string, any> = data;
         return {
-          email: contactData.email,
-          phone: contactData.phone,
-          location: contactData.location,
-          responseTime: contactData.response_time,
-          smtpHost: contactData.smtp_host,
-          smtpPort: contactData.smtp_port,
-          smtpUser: contactData.smtp_user,
-          smtpPassword: contactData.smtp_password,
-          smtpFromEmail: contactData.smtp_from_email,
+          email: data.email,
+          phone: data.phone,
+          location: data.location,
+          responseTime: data.response_time,
+          smtpHost: data.smtp_host,
+          smtpPort: data.smtp_port,
+          smtpUser: data.smtp_user,
+          smtpPassword: data.smtp_password,
+          smtpFromEmail: data.smtp_from_email,
         };
       }
     } catch (error) {
-      console.error('Error fetching contact info:', error);
+      console.error('Error fetching contact info from database:', error);
     }
   }
   return getContactInfoLocal();
@@ -826,7 +911,7 @@ const getContactInfoLocal = (): ContactInfo => {
 export const saveContactInfo = async (info: ContactInfo): Promise<void> => {
   if (isSupabaseAvailable()) {
     try {
-      const { error } = await (supabase as any).from('contact_info').upsert({
+      const { error } = await supabase.from('contact_info').upsert({
         id: 'default',
         email: info.email,
         phone: info.phone,
@@ -842,7 +927,7 @@ export const saveContactInfo = async (info: ContactInfo): Promise<void> => {
       if (error) throw error;
       return;
     } catch (error) {
-      console.error('Error saving contact info:', error);
+      console.error('Error saving contact info to database:', error);
     }
   }
   localStorage.setItem('website-contact', JSON.stringify(info));

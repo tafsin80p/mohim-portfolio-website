@@ -12,7 +12,7 @@ import Plugins from "./pages/Plugins";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Contact from "./pages/Contact";
-import Auth from "./pages/Auth";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
@@ -33,7 +33,7 @@ const App = () => (
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/login" element={<Login />} />
           <Route 
             path="/dashboard" 
             element={
