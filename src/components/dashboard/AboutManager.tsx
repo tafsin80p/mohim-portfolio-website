@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 import {
   getAboutContent,
   saveAboutContent,
@@ -36,8 +37,19 @@ export const AboutManager = () => {
     role: "",
     floatingTitle: "",
     floatingSubtitle: "",
+    availableBadgeText: "",
+    primaryButtonText: "",
+    secondaryButtonText: "",
+    statsLabel1: "",
+    statsLabel2: "",
+    statsLabel3: "",
+    statsValue1: "",
+    statsValue2: "",
+    statsValue3: "",
+    cvUrl: "",
   });
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -69,6 +81,16 @@ export const AboutManager = () => {
       role: loadedHero.role,
       floatingTitle: loadedHero.floatingTitle,
       floatingSubtitle: loadedHero.floatingSubtitle,
+      availableBadgeText: loadedHero.availableBadgeText,
+      primaryButtonText: loadedHero.primaryButtonText,
+      secondaryButtonText: loadedHero.secondaryButtonText,
+      statsLabel1: loadedHero.statsLabel1,
+      statsLabel2: loadedHero.statsLabel2,
+      statsLabel3: loadedHero.statsLabel3,
+      statsValue1: loadedHero.statsValue1,
+      statsValue2: loadedHero.statsValue2,
+      statsValue3: loadedHero.statsValue3,
+      cvUrl: loadedHero.cvUrl || "",
     });
   };
 
@@ -77,7 +99,10 @@ export const AboutManager = () => {
     
     if (!content || !hero) return;
     
-    const updatedAbout: AboutContent = {
+    setIsLoading(true);
+    
+    try {
+      const updatedAbout: AboutContent = {
       bio: formData.bio.filter(b => b.trim()),
       skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
       stats: {
@@ -98,17 +123,37 @@ export const AboutManager = () => {
       role: heroForm.role,
       floatingTitle: heroForm.floatingTitle,
       floatingSubtitle: heroForm.floatingSubtitle,
+      availableBadgeText: heroForm.availableBadgeText,
+      primaryButtonText: heroForm.primaryButtonText,
+      secondaryButtonText: heroForm.secondaryButtonText,
+      statsLabel1: heroForm.statsLabel1,
+      statsLabel2: heroForm.statsLabel2,
+      statsLabel3: heroForm.statsLabel3,
+      statsValue1: heroForm.statsValue1,
+      statsValue2: heroForm.statsValue2,
+      statsValue3: heroForm.statsValue3,
+      cvUrl: heroForm.cvUrl || undefined,
     };
 
-    await Promise.all([
-      saveAboutContent(updatedAbout),
-      saveHeroContent(updatedHero),
-    ]);
-    toast({
-      title: "Success",
-      description: "About content updated successfully",
-    });
-    await loadContent();
+      await Promise.all([
+        saveAboutContent(updatedAbout),
+        saveHeroContent(updatedHero),
+      ]);
+      toast({
+        title: "Success",
+        description: "About content updated successfully",
+      });
+      await loadContent();
+    } catch (error) {
+      console.error('Error saving content:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save content. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const addBioParagraph = () => {
@@ -221,6 +266,108 @@ export const AboutManager = () => {
                 placeholder="Short description under the main headline."
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="hero-available-badge">Available Badge Text</Label>
+              <Input
+                id="hero-available-badge"
+                value={heroForm.availableBadgeText}
+                onChange={(e) => setHeroForm({ ...heroForm, availableBadgeText: e.target.value })}
+                placeholder="Available"
+              />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hero-primary-button">Primary Button Text</Label>
+                <Input
+                  id="hero-primary-button"
+                  value={heroForm.primaryButtonText}
+                  onChange={(e) => setHeroForm({ ...heroForm, primaryButtonText: e.target.value })}
+                  placeholder="View My Work"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hero-secondary-button">Secondary Button Text</Label>
+                <Input
+                  id="hero-secondary-button"
+                  value={heroForm.secondaryButtonText}
+                  onChange={(e) => setHeroForm({ ...heroForm, secondaryButtonText: e.target.value })}
+                  placeholder="Download CV"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hero-cv-url">CV Download URL</Label>
+              <Input
+                id="hero-cv-url"
+                type="url"
+                value={heroForm.cvUrl}
+                onChange={(e) => setHeroForm({ ...heroForm, cvUrl: e.target.value })}
+                placeholder="https://example.com/cv.pdf"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the direct download URL for your CV. If left empty, the button will link to the contact page.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hero-stats-label1">Stats Label 1</Label>
+                  <Input
+                    id="hero-stats-label1"
+                    value={heroForm.statsLabel1}
+                    onChange={(e) => setHeroForm({ ...heroForm, statsLabel1: e.target.value })}
+                    placeholder="Projects"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hero-stats-label2">Stats Label 2</Label>
+                  <Input
+                    id="hero-stats-label2"
+                    value={heroForm.statsLabel2}
+                    onChange={(e) => setHeroForm({ ...heroForm, statsLabel2: e.target.value })}
+                    placeholder="Themes"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hero-stats-label3">Stats Label 3</Label>
+                  <Input
+                    id="hero-stats-label3"
+                    value={heroForm.statsLabel3}
+                    onChange={(e) => setHeroForm({ ...heroForm, statsLabel3: e.target.value })}
+                    placeholder="Plugins"
+                  />
+                </div>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hero-stats-value1">Stats Value 1</Label>
+                  <Input
+                    id="hero-stats-value1"
+                    value={heroForm.statsValue1}
+                    onChange={(e) => setHeroForm({ ...heroForm, statsValue1: e.target.value })}
+                    placeholder="50+"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hero-stats-value2">Stats Value 2</Label>
+                  <Input
+                    id="hero-stats-value2"
+                    value={heroForm.statsValue2}
+                    onChange={(e) => setHeroForm({ ...heroForm, statsValue2: e.target.value })}
+                    placeholder="8+"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hero-stats-value3">Stats Value 3</Label>
+                  <Input
+                    id="hero-stats-value3"
+                    value={heroForm.statsValue3}
+                    onChange={(e) => setHeroForm({ ...heroForm, statsValue3: e.target.value })}
+                    placeholder="15+"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
@@ -268,33 +415,50 @@ export const AboutManager = () => {
 
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <h3 className="font-mono font-semibold text-lg">Stats</h3>
+            <p className="text-sm text-muted-foreground">
+              These stats appear in the hero section. The first three stats (Projects, Themes, Plugins) are displayed on the home page.
+            </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Years Experience</Label>
+                <Label htmlFor="stat-projects">
+                  Projects Count <span className="text-xs text-muted-foreground">(Hero: {hero?.statsLabel1 || "Projects"})</span>
+                </Label>
                 <Input
-                  value={formData.experience}
-                  onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Projects Completed</Label>
-                <Input
+                  id="stat-projects"
                   value={formData.projects}
                   onChange={(e) => setFormData({ ...formData, projects: e.target.value })}
+                  placeholder="50+"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Happy Clients</Label>
+                <Label htmlFor="stat-themes">
+                  Themes Count <span className="text-xs text-muted-foreground">(Hero: {hero?.statsLabel2 || "Themes"})</span>
+                </Label>
                 <Input
+                  id="stat-themes"
+                  value={formData.experience}
+                  onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                  placeholder="8+"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stat-plugins">
+                  Plugins Count <span className="text-xs text-muted-foreground">(Hero: {hero?.statsLabel3 || "Plugins"})</span>
+                </Label>
+                <Input
+                  id="stat-plugins"
                   value={formData.clients}
                   onChange={(e) => setFormData({ ...formData, clients: e.target.value })}
+                  placeholder="15+"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Cups of Coffee</Label>
+                <Label htmlFor="stat-coffee">Cups of Coffee (Not shown in hero)</Label>
                 <Input
+                  id="stat-coffee"
                   value={formData.coffee}
                   onChange={(e) => setFormData({ ...formData, coffee: e.target.value })}
+                  placeholder="∞"
                 />
               </div>
             </div>
@@ -314,21 +478,20 @@ export const AboutManager = () => {
                   label="Upload Profile Image"
                   showPreview={true}
                 />
-              <div className="mt-2">
-                <Label className="text-xs text-muted-foreground">Or enter URL manually:</Label>
-                <Input
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://example.com/profile-image.jpg"
-                  className="mt-1"
-                />
-              </div>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
           </div>
         </form>
       )}

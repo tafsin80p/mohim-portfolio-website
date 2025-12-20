@@ -37,14 +37,13 @@ export const HeroSection = () => {
           <div className="order-2 lg:order-2 relative animate-fade-up animation-delay-200">
             <div className="relative mx-auto lg:mx-0 max-w-sm lg:max-w-none">
               <div className="aspect-square rounded-2xl overflow-hidden bg-card border border-border shadow-2xl relative">
+                {profileImage && (
                 <img
-                  src={
-                    profileImage ||
-                    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=600&fit=crop&crop=face"
-                  }
+                    src={profileImage}
                   alt="Tafsin Ahmed"
                   className="w-full h-full object-cover"
                 />
+                )}
                 {/* Text overlay on profile image */}
                 <div className="absolute inset-x-3 bottom-3 md:inset-x-4 md:bottom-4 bg-background/70 backdrop-blur-md border border-border/60 rounded-xl px-3 py-2 md:px-4 md:py-3 shadow-lg flex items-center justify-between gap-3">
                   <div>
@@ -56,7 +55,7 @@ export const HeroSection = () => {
                     </p>
                   </div>
                   <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 text-[10px] md:text-xs font-mono text-primary">
-                    Available
+                    {heroText?.availableBadgeText || "Available"}
                   </span>
                 </div>
               </div>
@@ -92,26 +91,35 @@ export const HeroSection = () => {
               {heroText?.headlineLine2 || "experiences"}
             </h1>
 
-            {/* Subheadline */}
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-8 animate-fade-up animation-delay-200">
-              {heroText?.subheadline ||
-                "WordPress developer specializing in custom themes, plugins, and full-stack solutions. Turning complex ideas into elegant, performant websites."}
-            </p>
+                {/* Subheadline */}
+                <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-center mb-8 animate-fade-up animation-delay-200">
+                  {heroText?.subheadline ||
+                    "WordPress developer specializing in custom themes, plugins, and full-stack solutions. Turning complex ideas into elegant, performant websites."}
+                </p>
 
             {/* CTAs */}
             <div className="flex flex-wrap gap-4 mb-12 lg:mb-16 animate-fade-up animation-delay-300">
               <Link to="/projects">
                 <Button size="lg" className="glow-box group">
-                  View My Work
+                  {heroText?.primaryButtonText || "View My Work"}
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
+              {heroText?.cvUrl ? (
+                <a href={heroText.cvUrl} download target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" variant="outline">
+                    <Download className="mr-2 w-4 h-4" />
+                    {heroText?.secondaryButtonText || "Download CV"}
+                  </Button>
+                </a>
+              ) : (
               <Link to="/contact">
                 <Button size="lg" variant="outline">
                   <Download className="mr-2 w-4 h-4" />
-                  Download CV
+                    {heroText?.secondaryButtonText || "Download CV"}
                 </Button>
               </Link>
+              )}
           </div>
 
             {/* Stats */}
@@ -122,9 +130,9 @@ export const HeroSection = () => {
                 </div>
                 <div>
                   <p className="font-mono text-xl lg:text-2xl font-bold">
-                    {stats?.projects || "50+"}
+                    {heroText?.statsValue1 || "50+"}
                   </p>
-                  <p className="text-muted-foreground text-xs lg:text-sm">Projects</p>
+                  <p className="text-muted-foreground text-xs lg:text-sm">{heroText?.statsLabel1 || "Projects"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 lg:gap-3">
@@ -133,9 +141,9 @@ export const HeroSection = () => {
                 </div>
                 <div>
                   <p className="font-mono text-xl lg:text-2xl font-bold">
-                    {stats?.experience || "8+"}
+                    {heroText?.statsValue2 || "8+"}
                   </p>
-                  <p className="text-muted-foreground text-xs lg:text-sm">Themes</p>
+                  <p className="text-muted-foreground text-xs lg:text-sm">{heroText?.statsLabel2 || "Themes"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 lg:gap-3">
@@ -144,9 +152,9 @@ export const HeroSection = () => {
                 </div>
                 <div>
                   <p className="font-mono text-xl lg:text-2xl font-bold">
-                    {stats?.clients || "15+"}
+                    {heroText?.statsValue3 || "15+"}
                   </p>
-                  <p className="text-muted-foreground text-xs lg:text-sm">Plugins</p>
+                  <p className="text-muted-foreground text-xs lg:text-sm">{heroText?.statsLabel3 || "Plugins"}</p>
                 </div>
               </div>
             </div>

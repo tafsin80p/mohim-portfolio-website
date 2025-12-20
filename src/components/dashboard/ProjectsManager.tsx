@@ -12,7 +12,7 @@ import {
   deleteProject, 
   type Project 
 } from "@/lib/contentStorage";
-import { Plus, Edit, Trash2, X } from "lucide-react";
+import { Plus, Edit, Trash2, X, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,7 @@ export const ProjectsManager = () => {
     githubUrl: "",
   });
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -47,43 +48,55 @@ export const ProjectsManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    const tagsArray = formData.tags.split(",").map(tag => tag.trim()).filter(Boolean);
-    
-    if (editingProject) {
-      const updated = await updateProject(editingProject.id, {
-        title: formData.title,
-        description: formData.description,
-        image: formData.image,
-        tags: tagsArray,
-        liveUrl: formData.liveUrl || undefined,
-        githubUrl: formData.githubUrl || undefined,
-      });
+    try {
+      const tagsArray = formData.tags.split(",").map(tag => tag.trim()).filter(Boolean);
       
-      if (updated) {
+      if (editingProject) {
+        const updated = await updateProject(editingProject.id, {
+          title: formData.title,
+          description: formData.description,
+          image: formData.image,
+          tags: tagsArray,
+          liveUrl: formData.liveUrl || undefined,
+          githubUrl: formData.githubUrl || undefined,
+        });
+        
+        if (updated) {
+          toast({
+            title: "Success",
+            description: "Project updated successfully",
+          });
+          await loadProjects();
+          resetForm();
+        }
+      } else {
+        await addProject({
+          title: formData.title,
+          description: formData.description,
+          image: formData.image,
+          tags: tagsArray,
+          liveUrl: formData.liveUrl || undefined,
+          githubUrl: formData.githubUrl || undefined,
+        });
+        
         toast({
           title: "Success",
-          description: "Project updated successfully",
+          description: "Project added successfully",
         });
         await loadProjects();
         resetForm();
       }
-    } else {
-      await addProject({
-        title: formData.title,
-        description: formData.description,
-        image: formData.image,
-        tags: tagsArray,
-        liveUrl: formData.liveUrl || undefined,
-        githubUrl: formData.githubUrl || undefined,
-      });
-      
+    } catch (error) {
+      console.error('Error saving project:', error);
       toast({
-        title: "Success",
-        description: "Project added successfully",
+        title: "Error",
+        description: "Failed to save project. Please try again.",
+        variant: "destructive",
       });
-      await loadProjects();
-      resetForm();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -173,18 +186,6 @@ export const ProjectsManager = () => {
                   label="Upload Project Image"
                   showPreview={true}
                 />
-                <div className="mt-2">
-                  <Label className="text-xs text-muted-foreground">Or enter URL manually:</Label>
-                  <Input
-                    id="image"
-                    type="url"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="https://example.com/project-image.jpg"
-                    className="mt-1"
-                    required
-                  />
-                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags (comma-separated)</Label>
@@ -219,7 +220,16 @@ export const ProjectsManager = () => {
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
                 </Button>
-                <Button type="submit">{editingProject ? "Update" : "Add"} Project</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    `${editingProject ? "Update" : "Add"} Project`
+                  )}
+                </Button>
               </div>
             </form>
           </DialogContent>

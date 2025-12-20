@@ -5,6 +5,7 @@ interface User {
   id: string;
   email: string;
   full_name?: string;
+  avatar_url?: string;
   created_at: string;
 }
 
@@ -40,6 +41,7 @@ export const useAuth = () => {
               id: supabaseSession.user.id,
               email: supabaseSession.user.email || '',
               full_name: supabaseSession.user.user_metadata?.full_name,
+              avatar_url: supabaseSession.user.user_metadata?.avatar_url,
               created_at: supabaseSession.user.created_at,
             };
             setUser(userData);
@@ -257,12 +259,54 @@ export const useAuth = () => {
     return { error: null };
   };
 
+  const refreshUser = async () => {
+    if (isSupabaseAvailable()) {
+      try {
+        const { data: { session: supabaseSession }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        if (supabaseSession?.user) {
+          const userData: User = {
+            id: supabaseSession.user.id,
+            email: supabaseSession.user.email || '',
+            full_name: supabaseSession.user.user_metadata?.full_name,
+            created_at: supabaseSession.user.created_at,
+          };
+          setUser(userData);
+          setSession({
+            access_token: supabaseSession.access_token,
+            user: userData,
+            expires_at: supabaseSession.expires_at,
+          });
+        }
+      } catch (error) {
+        console.error('Error refreshing user:', error);
+      }
+    } else {
+      // Fallback to localStorage
+      const userStr = localStorage.getItem('local-auth-user');
+      const sessionStr = localStorage.getItem('local-auth-session');
+
+      if (userStr && sessionStr) {
+        try {
+          const savedUser = JSON.parse(userStr);
+          const savedSession = JSON.parse(sessionStr);
+          setUser(savedUser);
+          setSession(savedSession);
+        } catch (e) {
+          console.error("Error parsing auth data:", e);
+        }
+      }
+    }
+  };
+
   return {
     user,
     session,
     loading,
     signUp,
     signIn,
-    signOut
+    signOut,
+    refreshUser
   };
 };

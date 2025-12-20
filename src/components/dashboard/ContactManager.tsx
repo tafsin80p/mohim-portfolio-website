@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 import { getContactInfo, saveContactInfo, type ContactInfo } from "@/lib/contentStorage";
 
 export const ContactManager = () => {
@@ -18,6 +19,7 @@ export const ContactManager = () => {
     smtpFromEmail: "",
   });
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -30,11 +32,23 @@ export const ContactManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveContactInfo(formData);
-    toast({
-      title: "Success",
-      description: "Contact information updated successfully",
-    });
+    setIsLoading(true);
+    try {
+      await saveContactInfo(formData);
+      toast({
+        title: "Success",
+        description: "Contact information updated successfully",
+      });
+    } catch (error) {
+      console.error('Error saving contact info:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save contact information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -149,7 +163,16 @@ export const ContactManager = () => {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Save Changes</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
         </div>
       </form>
     </div>

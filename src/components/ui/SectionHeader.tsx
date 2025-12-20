@@ -22,7 +22,7 @@ export const SectionHeader = ({
         {title}
       </h2>
       {description && (
-        <p className="text-muted-foreground text-lg max-w-2xl animate-fade-up animation-delay-200">
+        <p className={`text-muted-foreground text-lg max-w-2xl animate-fade-up animation-delay-200 ${centered ? "mx-auto text-center" : ""}`}>
           {description}
         </p>
       )}

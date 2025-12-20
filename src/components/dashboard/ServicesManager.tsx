@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getServices, saveServices, type Service } from "@/lib/contentStorage";
-import { Plus, Edit, Trash2, GripVertical } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ export const ServicesManager = () => {
     order: 1,
   });
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     void loadServices();
@@ -43,33 +44,45 @@ export const ServicesManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    if (editingService) {
-      const updated = services.map(s => 
-        s.id === editingService.id 
-          ? { ...s, ...formData }
-          : s
-      );
-      await saveServices(updated);
+    try {
+      if (editingService) {
+        const updated = services.map(s => 
+          s.id === editingService.id 
+            ? { ...s, ...formData }
+            : s
+        );
+        await saveServices(updated);
+        toast({
+          title: "Success",
+          description: "Service updated successfully",
+        });
+      } else {
+        const newService: Service = {
+          id: Date.now().toString(),
+          ...formData,
+          order: services.length + 1,
+        };
+        await saveServices([...services, newService]);
+        toast({
+          title: "Success",
+          description: "Service added successfully",
+        });
+      }
+      
+      await loadServices();
+      resetForm();
+    } catch (error) {
+      console.error('Error saving service:', error);
       toast({
-        title: "Success",
-        description: "Service updated successfully",
+        title: "Error",
+        description: "Failed to save service. Please try again.",
+        variant: "destructive",
       });
-    } else {
-      const newService: Service = {
-        id: Date.now().toString(),
-        ...formData,
-        order: services.length + 1,
-      };
-      await saveServices([...services, newService]);
-      toast({
-        title: "Success",
-        description: "Service added successfully",
-      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    await loadServices();
-    resetForm();
   };
 
   const handleEdit = (service: Service) => {

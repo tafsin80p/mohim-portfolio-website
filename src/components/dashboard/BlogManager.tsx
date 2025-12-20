@@ -13,7 +13,7 @@ import {
   deleteBlogPost, 
   type BlogPost 
 } from "@/lib/contentStorage";
-import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,7 @@ export const BlogManager = () => {
     published: true,
   });
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -57,47 +58,59 @@ export const BlogManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    const slug = formData.slug || generateSlug(formData.title);
-    
-    if (editingPost) {
-      const updated = await updateBlogPost(editingPost.id, {
-        title: formData.title,
-        slug: slug,
-        excerpt: formData.excerpt,
-        content: formData.content,
-        image_url: formData.image_url || undefined,
-        category: formData.category,
-        read_time: formData.read_time,
-        published: formData.published,
-      });
+    try {
+      const slug = formData.slug || generateSlug(formData.title);
       
-      if (updated) {
+      if (editingPost) {
+        const updated = await updateBlogPost(editingPost.id, {
+          title: formData.title,
+          slug: slug,
+          excerpt: formData.excerpt,
+          content: formData.content,
+          image_url: formData.image_url || undefined,
+          category: formData.category,
+          read_time: formData.read_time,
+          published: formData.published,
+        });
+        
+        if (updated) {
+          toast({
+            title: "Success",
+            description: "Blog post updated successfully",
+          });
+          await loadPosts();
+          resetForm();
+        }
+      } else {
+        await addBlogPost({
+          title: formData.title,
+          slug: slug,
+          excerpt: formData.excerpt,
+          content: formData.content,
+          image_url: formData.image_url || undefined,
+          category: formData.category,
+          read_time: formData.read_time,
+          published: formData.published,
+        });
+        
         toast({
           title: "Success",
-          description: "Blog post updated successfully",
+          description: "Blog post added successfully",
         });
-        await loadPosts();
+        loadPosts();
         resetForm();
       }
-    } else {
-      await addBlogPost({
-        title: formData.title,
-        slug: slug,
-        excerpt: formData.excerpt,
-        content: formData.content,
-        image_url: formData.image_url || undefined,
-        category: formData.category,
-        read_time: formData.read_time,
-        published: formData.published,
-      });
-      
+    } catch (error) {
+      console.error('Error saving blog post:', error);
       toast({
-        title: "Success",
-        description: "Blog post added successfully",
+        title: "Error",
+        description: "Failed to save blog post. Please try again.",
+        variant: "destructive",
       });
-      loadPosts();
-      resetForm();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -224,17 +237,6 @@ export const BlogManager = () => {
                   label="Upload Featured Image"
                   showPreview={true}
                 />
-                <div className="mt-2">
-                  <Label className="text-xs text-muted-foreground">Or enter URL manually:</Label>
-                  <Input
-                    id="image_url"
-                    type="url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://example.com/blog-image.jpg"
-                    className="mt-1"
-                  />
-                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -269,7 +271,16 @@ export const BlogManager = () => {
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
                 </Button>
-                <Button type="submit">{editingPost ? "Update" : "Create"} Post</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    `${editingPost ? "Update" : "Create"} Post`
+                  )}
+                </Button>
               </div>
             </form>
           </DialogContent>

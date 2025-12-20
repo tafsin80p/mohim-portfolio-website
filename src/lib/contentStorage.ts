@@ -83,6 +83,16 @@ export interface HeroContent {
   role: string;
   floatingTitle: string;
   floatingSubtitle: string;
+  availableBadgeText: string;
+  primaryButtonText: string;
+  secondaryButtonText: string;
+  statsLabel1: string;
+  statsLabel2: string;
+  statsLabel3: string;
+  statsValue1: string;
+  statsValue2: string;
+  statsValue3: string;
+  cvUrl?: string;
 }
 
 export interface ContactInfo {
@@ -95,6 +105,30 @@ export interface ContactInfo {
   smtpUser?: string;
   smtpPassword?: string;
   smtpFromEmail?: string;
+}
+
+export interface SocialLink {
+  icon: string; // 'Github' | 'Linkedin' | 'Twitter' | 'Mail' | etc.
+  href: string;
+  label: string;
+}
+
+export interface FooterLink {
+  name: string;
+  path: string;
+}
+
+export interface FooterLinkGroup {
+  title: string;
+  links: FooterLink[];
+}
+
+export interface FooterContent {
+  brandName: string;
+  description: string;
+  socialLinks: SocialLink[];
+  linkGroups: FooterLinkGroup[];
+  copyrightText: string;
 }
 
 // Helper to check if Supabase is available
@@ -596,12 +630,12 @@ export const getThemes = async (): Promise<Theme[]> => {
         id: t.id as string,
         title: t.title as string,
         description: t.description as string,
-        image: t.image as string,
+        image: (t.image as string) || "",
         tags: (t.tags as string[]) || [],
-        liveUrl: t.live_url as string | undefined,
-        githubUrl: t.github_url as string | undefined,
-        price: t.price as string | undefined,
-        fileUrl: t.file_url as string | undefined,
+        liveUrl: (t.live_url as string) || undefined,
+        githubUrl: (t.github_url as string) || undefined,
+        price: (t.price as string) || undefined,
+        fileUrl: (t.file_url as string) || undefined,
       }));
     } catch (error) {
       console.error('Error fetching themes from database:', error);
@@ -660,12 +694,12 @@ export const getPlugins = async (): Promise<Plugin[]> => {
         id: p.id as string,
         title: p.title as string,
         description: p.description as string,
-        image: p.image as string,
+        image: (p.image as string) || "",
         tags: (p.tags as string[]) || [],
-        liveUrl: p.live_url as string | undefined,
-        githubUrl: p.github_url as string | undefined,
-        price: p.price as string | undefined,
-        fileUrl: p.file_url as string | undefined,
+        liveUrl: (p.live_url as string) || undefined,
+        githubUrl: (p.github_url as string) || undefined,
+        price: (p.price as string) || undefined,
+        fileUrl: (p.file_url as string) || undefined,
       }));
     } catch (error) {
       console.error('Error fetching plugins from database:', error);
@@ -806,6 +840,16 @@ export const getHeroContent = async (): Promise<HeroContent> => {
           role: data.role || '',
           floatingTitle: data.floating_title || '',
           floatingSubtitle: data.floating_subtitle || '',
+          availableBadgeText: data.available_badge_text || 'Available',
+          primaryButtonText: data.primary_button_text || 'View My Work',
+          secondaryButtonText: data.secondary_button_text || 'Download CV',
+          statsLabel1: data.stats_label1 || 'Projects',
+          statsLabel2: data.stats_label2 || 'Themes',
+          statsLabel3: data.stats_label3 || 'Plugins',
+          statsValue1: data.stats_value1 || '50+',
+          statsValue2: data.stats_value2 || '8+',
+          statsValue3: data.stats_value3 || '15+',
+          cvUrl: data.cv_url || undefined,
         };
       }
     } catch (error) {
@@ -830,6 +874,15 @@ const getHeroContentLocal = (): HeroContent => {
     role: "WordPress Developer",
     floatingTitle: "WordPress Expert",
     floatingSubtitle: "Since 2016",
+    availableBadgeText: "Available",
+    primaryButtonText: "View My Work",
+    secondaryButtonText: "Download CV",
+    statsLabel1: "Projects",
+    statsLabel2: "Themes",
+    statsLabel3: "Plugins",
+    statsValue1: "50+",
+    statsValue2: "8+",
+    statsValue3: "15+",
   };
 
   localStorage.setItem("website-hero", JSON.stringify(defaultContent));
@@ -850,6 +903,16 @@ export const saveHeroContent = async (content: HeroContent): Promise<void> => {
         role: content.role,
         floating_title: content.floatingTitle,
         floating_subtitle: content.floatingSubtitle,
+        available_badge_text: content.availableBadgeText,
+        primary_button_text: content.primaryButtonText,
+        secondary_button_text: content.secondaryButtonText,
+        stats_label1: content.statsLabel1,
+        stats_label2: content.statsLabel2,
+        stats_label3: content.statsLabel3,
+        stats_value1: content.statsValue1,
+        stats_value2: content.statsValue2,
+        stats_value3: content.statsValue3,
+        cv_url: content.cvUrl || null,
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -931,4 +994,99 @@ export const saveContactInfo = async (info: ContactInfo): Promise<void> => {
     }
   }
   localStorage.setItem('website-contact', JSON.stringify(info));
+};
+
+// Footer Content
+export const getFooterContent = async (): Promise<FooterContent> => {
+  if (isSupabaseAvailable()) {
+    try {
+      const { data, error } = await supabase
+        .from('footer_content')
+        .select('*')
+        .eq('id', 'default')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        return {
+          brandName: data.brand_name || '',
+          description: data.description || '',
+          socialLinks: data.social_links || [],
+          linkGroups: data.link_groups || [],
+          copyrightText: data.copyright_text || '',
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching footer content from database:', error);
+    }
+  }
+  return getFooterContentLocal();
+};
+
+const getFooterContentLocal = (): FooterContent => {
+  const data = localStorage.getItem('website-footer');
+  if (data) return JSON.parse(data);
+
+  const defaultContent: FooterContent = {
+    brandName: "Tafsin Ahmed",
+    description: "WordPress developer crafting exceptional themes, plugins, and custom solutions for businesses worldwide.",
+    socialLinks: [
+      { icon: "Github", href: "#", label: "GitHub" },
+      { icon: "Linkedin", href: "#", label: "LinkedIn" },
+      { icon: "Twitter", href: "#", label: "Twitter" },
+      { icon: "Mail", href: "mailto:hello@example.com", label: "Email" },
+    ],
+    linkGroups: [
+      {
+        title: "Pages",
+        links: [
+          { name: "Home", path: "/" },
+          { name: "About", path: "/about" },
+          { name: "Projects", path: "/projects" },
+        ],
+      },
+      {
+        title: "Services",
+        links: [
+          { name: "Themes", path: "/themes" },
+          { name: "Plugins", path: "/plugins" },
+          { name: "Blog", path: "/blog" },
+        ],
+      },
+      {
+        title: "Connect",
+        links: [
+          { name: "Contact", path: "/contact" },
+          { name: "GitHub", path: "#" },
+          { name: "LinkedIn", path: "#" },
+        ],
+      },
+    ],
+    copyrightText: "Tafsin Ahmed. All rights reserved.",
+  };
+
+  localStorage.setItem('website-footer', JSON.stringify(defaultContent));
+  return defaultContent;
+};
+
+export const saveFooterContent = async (content: FooterContent): Promise<void> => {
+  if (isSupabaseAvailable()) {
+    try {
+      const { error } = await supabase.from('footer_content').upsert({
+        id: 'default',
+        brand_name: content.brandName,
+        description: content.description,
+        social_links: content.socialLinks,
+        link_groups: content.linkGroups,
+        copyright_text: content.copyrightText,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      return;
+    } catch (error) {
+      console.error('Error saving footer content to database:', error);
+    }
+  }
+  localStorage.setItem('website-footer', JSON.stringify(content));
 };

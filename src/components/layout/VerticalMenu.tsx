@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, CheckSquare, Layers, FileText, Tags, MessageSquare, Mail, Edit, User, LogOut, Menu, X } from "lucide-react";
+import { Home, CheckSquare, Layers, FileText, Tags, MessageSquare, Mail, Edit, User, LogOut, Menu, X, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +41,7 @@ const bottomMenuItems = [
 export const VerticalMenu = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -74,6 +76,21 @@ export const VerticalMenu = () => {
               </Link>
             );
           })}
+          
+          {/* Theme Toggle */}
+          <div className="w-8 h-px bg-border my-1" />
+          <button
+            onClick={toggleTheme}
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 text-foreground hover:bg-secondary"
+            title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            aria-label="Toggle theme"
+          >
+            {theme === "light" ? (
+              <Moon className="w-5 h-5 stroke-[1.5]" />
+            ) : (
+              <Sun className="w-5 h-5 stroke-[1.5]" />
+            )}
+          </button>
           
           {/* Account Menu */}
           {user && (
@@ -137,6 +154,20 @@ export const VerticalMenu = () => {
                   </Link>
                 );
               })}
+              
+              {/* Theme Toggle in Mobile Menu */}
+              <div className="h-px bg-border my-2" />
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 text-foreground hover:bg-secondary"
+              >
+                {theme === "light" ? (
+                  <Moon className="w-5 h-5 stroke-[1.5]" />
+                ) : (
+                  <Sun className="w-5 h-5 stroke-[1.5]" />
+                )}
+                <span className="font-medium">{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
+              </button>
               
               {user && (
                 <>

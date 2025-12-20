@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getThemes, saveThemes, type Theme } from "@/lib/contentStorage";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ export const ThemesManager = () => {
     fileUrl: "",
   });
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     void loadThemes();
@@ -41,51 +42,60 @@ export const ThemesManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const tagsArray = formData.tags.split(",").map(tag => tag.trim()).filter(Boolean);
 
-    const tagsArray = formData.tags.split(",").map(tag => tag.trim()).filter(Boolean);
+      if (editingTheme) {
+        const updatedList = themes.map(theme =>
+          theme.id === editingTheme.id
+            ? {
+                ...theme,
+                title: formData.title,
+                description: formData.description,
+                image: formData.image,
+                tags: tagsArray,
+                price: formData.price || undefined,
+                fileUrl: formData.fileUrl || undefined,
+              }
+            : theme
+        );
+        await saveThemes(updatedList);
+        toast({
+          title: "Success",
+          description: "Theme updated successfully",
+        });
+      } else {
+        const newTheme: Theme = {
+          id: crypto.randomUUID(),
+          title: formData.title,
+          description: formData.description,
+          image: formData.image,
+          tags: tagsArray,
+          price: formData.price || undefined,
+          fileUrl: formData.fileUrl || undefined,
+        };
 
-    if (editingTheme) {
-      const updatedList = themes.map(theme =>
-        theme.id === editingTheme.id
-          ? {
-              ...theme,
-              title: formData.title,
-              description: formData.description,
-              image: formData.image,
-              tags: tagsArray,
-              price: formData.price || undefined,
-              fileUrl: formData.fileUrl || undefined,
-            }
-          : theme
-      );
-      await saveThemes(updatedList);
+        await saveThemes([...themes, newTheme]);
+        toast({
+          title: "Success",
+          description: "Theme added successfully",
+        });
+      }
+
+      await loadThemes();
+      resetForm();
+    } catch (error) {
+      console.error('Error saving theme:', error);
       toast({
-        title: "Success",
-        description: "Theme updated successfully",
+        title: "Error",
+        description: "Failed to save theme. Please try again.",
+        variant: "destructive",
       });
-    } else {
-      const newTheme: Theme = {
-        id: crypto.randomUUID(),
-        title: formData.title,
-        description: formData.description,
-        image: formData.image,
-        tags: tagsArray,
-        price: formData.price || undefined,
-        fileUrl: formData.fileUrl || undefined,
-        // Optional URLs for demo/source can be set later if needed
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as any;
-
-      await saveThemes([...themes, newTheme]);
-      toast({
-        title: "Success",
-        description: "Theme added successfully",
-      });
+    } finally {
+      setIsLoading(false);
     }
-
-    await loadThemes();
-    resetForm();
   };
 
   const handleEdit = (theme: Theme) => {
@@ -177,17 +187,6 @@ export const ThemesManager = () => {
                   label="Upload Theme Preview Image"
                   showPreview={true}
                 />
-                <div className="mt-2">
-                  <Label className="text-xs text-muted-foreground">Or enter URL manually:</Label>
-                  <Input
-                    type="url"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="https://example.com/theme-preview.jpg"
-                    className="mt-1"
-                    required
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -220,16 +219,6 @@ export const ThemesManager = () => {
                   label="Upload Theme ZIP File"
                   showPreview={false}
                 />
-                <div className="mt-2">
-                  <Label className="text-xs text-muted-foreground">Or enter file URL manually:</Label>
-                  <Input
-                    type="url"
-                    value={formData.fileUrl}
-                    onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                    placeholder="https://example.com/theme-file.zip"
-                    className="mt-1"
-                  />
-                </div>
                 <p className="text-xs text-muted-foreground">
                   Note: Theme files are only accessible from this dashboard and are not directly downloadable on the public site.
                 </p>
@@ -239,7 +228,16 @@ export const ThemesManager = () => {
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
                 </Button>
-                <Button type="submit">{editingTheme ? "Update" : "Add"} Theme</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    `${editingTheme ? "Update" : "Add"} Theme`
+                  )}
+                </Button>
               </div>
             </form>
           </DialogContent>

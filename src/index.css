@@ -55,6 +55,50 @@
     --sidebar-ring: 174 72% 56%;
   }
 
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 220 13% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 18%;
+
+    --primary: 174 72% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 174 72% 56%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(174 72% 56%), hsl(190 80% 45%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 98%), hsl(0 0% 100%));
+    --glow-primary: 0 0 40px hsl(174 72% 56% / 0.3);
+    --glow-soft: 0 0 60px hsl(174 72% 56% / 0.15);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 13% 18%;
+    --sidebar-primary: 174 72% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14.3% 95.9%;
+    --sidebar-accent-foreground: 220.9 39.3% 11%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 174 72% 56%;
+  }
+
   .dark {
     --background: 220 20% 6%;
     --foreground: 210 40% 96%;
@@ -232,4 +276,99 @@ iframe {
 iframe::-webkit-scrollbar {
   display: none;
   /* Chrome, Safari */
+}
+
+/* Layout Presets */
+@layer utilities {
+  /* Card Styles */
+  [data-card-style="rounded"] {
+    --card-radius: 0.75rem;
+    --card-border-radius: 0.75rem;
+  }
+  
+  [data-card-style="sharp"] {
+    --card-radius: 0;
+    --card-border-radius: 0;
+  }
+  
+  [data-card-style="elevated"] {
+    --card-radius: 1rem;
+    --card-border-radius: 1rem;
+    --card-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
+  }
+  
+  [data-card-style="flat"] {
+    --card-radius: 0.5rem;
+    --card-border-radius: 0.5rem;
+    --card-shadow: none;
+  }
+  
+  [data-card-style="glass"] {
+    --card-radius: 1.5rem;
+    --card-border-radius: 1.5rem;
+    --card-backdrop: blur(20px);
+  }
+
+  /* Apply to cards */
+  [data-card-style] .bg-card,
+  [data-card-style] [class*="rounded-xl"],
+  [data-card-style] [class*="rounded-2xl"] {
+    border-radius: var(--card-border-radius, 0.75rem) !important;
+    box-shadow: var(--card-shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1)) !important;
+    border: var(--card-border, 1px solid hsl(var(--border))) !important;
+  }
+
+  /* Glass morphism effect */
+  [data-card-style="glass"] .bg-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .light [data-card-style="glass"] .bg-card {
+    background: rgba(255, 255, 255, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  }
+
+  /* Elevated cards */
+  [data-card-style="elevated"] .bg-card {
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2) !important;
+    transform: translateY(0);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  [data-card-style="elevated"] .bg-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* Flat cards */
+  [data-card-style="flat"] .bg-card {
+    box-shadow: none !important;
+    border: 1px solid hsl(var(--border)) !important;
+  }
+
+  /* Borders toggle */
+  [data-borders="false"] .bg-card {
+    border: none !important;
+  }
+
+  /* Shadows toggle */
+  [data-shadows="false"] .bg-card {
+    box-shadow: none !important;
+  }
+
+  /* Spacing adjustments */
+  [data-spacing="compact"] .section-padding {
+    padding: 3rem 0 !important;
+  }
+  
+  [data-spacing="comfortable"] .section-padding {
+    padding: 4rem 0 !important;
+  }
+  
+  [data-spacing="spacious"] .section-padding {
+    padding: 6rem 0 !important;
+  }
 }

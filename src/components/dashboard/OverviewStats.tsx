@@ -32,11 +32,17 @@ export const OverviewStats = () => {
       console.log('Checking Supabase connection...', { 
         url: url ? 'Set' : 'Not set', 
         key: key ? 'Set' : 'Not set',
-        isAvailable 
+        isAvailable,
+        urlValue: url?.substring(0, 30) + '...',
+        keyValue: key ? key.substring(0, 20) + '...' : 'Not set'
       });
       
       if (isAvailable) {
         try {
+          // First, test with a simple query that doesn't require tables
+          // Try to get the current user (this tests auth, not database)
+          const { data: { session } } = await supabase.auth.getSession();
+          
           // Test connection by fetching from projects table
           // If table doesn't exist, try a simpler test first
           const { data: testData, error: testError } = await supabase
@@ -56,9 +62,44 @@ export const OverviewStats = () => {
                 stats: { projects: 0, blogPosts: 0, services: 0, users: 0 },
                 error: 'Tables not created. Please run the SQL schema in Supabase.' 
               });
-            } else {
+            } 
+            // Check for JWT/authentication errors
+            else if (testError.code === 'PGRST301' || testError.code === '42501' || testError.message?.toLowerCase().includes('jwt') || testError.message?.toLowerCase().includes('expired') || testError.message?.toLowerCase().includes('token') || testError.message?.toLowerCase().includes('invalid api key')) {
+              console.error('JWT/Authentication error:', testError);
+              
+              // Provide more specific guidance
+              let errorMessage = 'JWT/API Key error detected. ';
+              
+              if (testError.message?.toLowerCase().includes('invalid api key') || testError.code === 'PGRST301') {
+                errorMessage += 'Your VITE_SUPABASE_ANON_KEY appears to be invalid. ';
+                errorMessage += 'Please check: 1) You copied the "anon" "public" key (not service_role), 2) The key is correct in your .env file, 3) No extra spaces or quotes around the key.';
+              } else {
+                errorMessage += 'Please verify your VITE_SUPABASE_ANON_KEY is correct in your .env file. ';
+                errorMessage += 'Make sure you\'re using the "anon" "public" key from Supabase Settings > API.';
+              }
+              
+              setDbStatus({ 
+                connected: false, 
+                stats: null, 
+                error: errorMessage
+              });
+            }
+            // Check for invalid API key or URL errors
+            else if (testError.code === 'PGRST301' || testError.message?.toLowerCase().includes('invalid') || testError.message?.toLowerCase().includes('api key')) {
+              console.error('Invalid configuration error:', testError);
+              setDbStatus({ 
+                connected: false, 
+                stats: null, 
+                error: 'Invalid Supabase configuration. Please check your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env file.' 
+              });
+            }
+            else {
               console.error('Supabase connection error:', testError);
-              setDbStatus({ connected: false, stats: null, error: testError.message });
+              setDbStatus({ 
+                connected: false, 
+                stats: null, 
+                error: testError.message || 'Unknown database error occurred' 
+              });
             }
           } else {
             // Connection successful, get stats
@@ -149,25 +190,65 @@ export const OverviewStats = () => {
           </div>
         )}
         {!dbStatus?.connected && (
-          <div className="text-sm text-muted-foreground mt-2 space-y-2">
-            <p className="font-semibold text-destructive">Database not connected</p>
-            {dbStatus?.error && (
-              <p className="text-destructive text-xs mt-1">Error: {dbStatus.error}</p>
-            )}
-            <div className="mt-2">
-              <p>To enable database storage:</p>
-              <ul className="list-disc list-inside space-y-1 ml-2 mt-1">
-                <li>Set <code className="bg-muted px-1 rounded">VITE_SUPABASE_URL</code> in your .env file</li>
-                <li>Set <code className="bg-muted px-1 rounded">VITE_SUPABASE_ANON_KEY</code> in your .env file</li>
-                <li>Run the SQL schema in Supabase SQL Editor</li>
+          <div className="text-sm mt-4 space-y-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <div className="flex items-start gap-2">
+              <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-destructive mb-1">Database Not Connected</p>
+                {dbStatus?.error && (
+                  <p className="text-destructive/80 text-xs mb-2">Error: {dbStatus.error}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-3 space-y-2">
+              <p className="font-medium text-foreground">To enable database storage:</p>
+              <ul className="list-disc list-inside space-y-1.5 ml-2 text-muted-foreground">
+                <li>Create a <code className="bg-background px-1.5 py-0.5 rounded text-xs font-mono border border-border">.env</code> file in the project root</li>
+                <li>Add <code className="bg-background px-1.5 py-0.5 rounded text-xs font-mono border border-border">VITE_SUPABASE_URL</code> with your Supabase project URL</li>
+                <li>Add <code className="bg-background px-1.5 py-0.5 rounded text-xs font-mono border border-border">VITE_SUPABASE_ANON_KEY</code> with your Supabase anon key</li>
+                <li>Run the SQL migrations in Supabase SQL Editor</li>
                 <li>Restart your development server after adding variables</li>
               </ul>
             </div>
-            <div className="mt-3 p-2 bg-muted/50 rounded text-xs">
-              <p className="font-semibold mb-1">Current Status:</p>
-              <p>URL: {import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Not set'}</p>
-              <p>Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Not set'}</p>
+            
+            <div className="mt-3 p-3 bg-background/50 rounded border border-border">
+              <p className="font-semibold mb-2 text-foreground">Configuration Status:</p>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={import.meta.env.VITE_SUPABASE_URL ? 'text-green-500' : 'text-red-500'}>
+                    {import.meta.env.VITE_SUPABASE_URL ? '✅' : '❌'}
+                  </span>
+                  <span className="font-mono">VITE_SUPABASE_URL</span>
+                  <span className="text-muted-foreground">
+                    {import.meta.env.VITE_SUPABASE_URL ? '(Configured)' : '(Not configured)'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={import.meta.env.VITE_SUPABASE_ANON_KEY ? 'text-green-500' : 'text-red-500'}>
+                    {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅' : '❌'}
+                  </span>
+                  <span className="font-mono">VITE_SUPABASE_ANON_KEY</span>
+                  <span className="text-muted-foreground">
+                    {import.meta.env.VITE_SUPABASE_ANON_KEY ? '(Configured)' : '(Not configured)'}
+                  </span>
+                </div>
+              </div>
             </div>
+            
+            {dbStatus?.connected && dbStatus.error && (
+              <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-xs">
+                <p className="font-semibold text-yellow-600 dark:text-yellow-400 mb-1">⚠️ Warning</p>
+                <p className="text-yellow-600/80 dark:text-yellow-400/80">{dbStatus.error}</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {dbStatus?.connected && dbStatus.error && (
+          <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="font-semibold text-yellow-600 dark:text-yellow-400 mb-1 text-sm">⚠️ Warning</p>
+            <p className="text-yellow-600/80 dark:text-yellow-400/80 text-xs">{dbStatus.error}</p>
           </div>
         )}
       </div>

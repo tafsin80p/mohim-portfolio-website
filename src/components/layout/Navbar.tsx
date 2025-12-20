@@ -4,6 +4,7 @@ import { Menu, X, Code2, User, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +63,7 @@ export const Navbar = () => {
 
           {/* Auth & CTA */}
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle variant="outline" size="sm" />
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -103,6 +105,9 @@ export const Navbar = () => {
       {isOpen && (
         <div className="md:hidden bg-card border-b border-border animate-fade-in">
           <div className="container-custom py-4 flex flex-col gap-2">
+            <div className="px-4 pb-2">
+              <ThemeToggle variant="outline" size="default" className="w-full justify-center" />
+            </div>
             {navItems.map((item) => (
               <Link
                 key={item.path}

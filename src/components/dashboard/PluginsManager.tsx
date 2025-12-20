@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getPlugins, savePlugins, type Plugin } from "@/lib/contentStorage";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ export const PluginsManager = () => {
     fileUrl: "",
   });
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     void loadPlugins();
@@ -176,17 +177,6 @@ export const PluginsManager = () => {
                   label="Upload Plugin Image"
                   showPreview={true}
                 />
-                <div className="mt-2">
-                  <Label className="text-xs text-muted-foreground">Or enter URL manually:</Label>
-                  <Input
-                    type="url"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="https://example.com/plugin-image.jpg"
-                    className="mt-1"
-                    required
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -219,16 +209,6 @@ export const PluginsManager = () => {
                   label="Upload Plugin ZIP File"
                   showPreview={false}
                 />
-                <div className="mt-2">
-                  <Label className="text-xs text-muted-foreground">Or enter file URL manually:</Label>
-                  <Input
-                    type="url"
-                    value={formData.fileUrl}
-                    onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                    placeholder="https://example.com/plugin-file.zip"
-                    className="mt-1"
-                  />
-                </div>
                 <p className="text-xs text-muted-foreground">
                   Note: Plugin files are only accessible from this dashboard and are not directly downloadable on the public site.
                 </p>
@@ -238,7 +218,16 @@ export const PluginsManager = () => {
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
                 </Button>
-                <Button type="submit">{editingPlugin ? "Update" : "Add"} Plugin</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    `${editingPlugin ? "Update" : "Add"} Plugin`
+                  )}
+                </Button>
               </div>
             </form>
           </DialogContent>
