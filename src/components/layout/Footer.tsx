@@ -69,7 +69,7 @@ export const Footer = () => {
   if (!content) {
     return (
       <footer className="bg-card border-t border-border">
-        <div className="container-custom section-padding pl-6 pr-4 md:px-6 lg:px-8">
+        <div className="container-custom section-padding pl-6 pr-4 sm:px-6 md:px-6 lg:px-8">
           <div className="text-center py-8">
             <p className="text-muted-foreground text-sm">Loading...</p>
           </div>
@@ -80,20 +80,20 @@ export const Footer = () => {
 
   return (
     <footer className="bg-card border-t border-border">
-      <div className="container-custom section-padding pl-6 pr-4 md:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+      <div className="container-custom section-padding pl-6 pr-4 sm:px-6 md:px-6 lg:px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-10 md:gap-12 pl-5 sm:pl-0">
           {/* Brand */}
-          <div className="lg:col-span-2">
+          <div className="sm:col-span-2 lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4">
               <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <Code2 className="w-5 h-5 text-primary" />
               </div>
-              <span className="font-mono font-bold text-lg">{content.brandName}</span>
+              <span className="font-mono font-bold text-base sm:text-lg">{content.brandName}</span>
             </Link>
-            <p className="text-muted-foreground text-sm max-w-xs mb-6">
+            <p className="text-muted-foreground text-sm sm:text-sm max-w-xs mb-4 sm:mb-6">
               {content.description}
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {content.socialLinks && content.socialLinks.length > 0 ? content.socialLinks.map((social, index) => {
                 const IconComponent = iconMap[social.icon] || Mail;
                 return (
@@ -101,9 +101,9 @@ export const Footer = () => {
                     key={index}
                     href={social.href || "#"}
                     aria-label={social.label || social.icon}
-                    className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200"
                   >
-                    <IconComponent className="w-5 h-5" />
+                    <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
                   </a>
                 );
               }) : null}
@@ -112,22 +112,22 @@ export const Footer = () => {
 
           {/* Links */}
           {content.linkGroups && content.linkGroups.length > 0 ? content.linkGroups.map((group, groupIndex) => (
-            <div key={groupIndex}>
-              <h4 className="font-mono font-semibold text-sm mb-4">{group.title || ""}</h4>
-              <ul className="space-y-3">
+            <div key={groupIndex} className="mt-6 sm:mt-0">
+              <h4 className="font-mono font-semibold text-sm mb-3 sm:mb-4">{group.title || ""}</h4>
+              <ul className="space-y-2 sm:space-y-3">
                 {group.links && group.links.length > 0 ? group.links.map((link, linkIndex) => (
                   <li key={linkIndex}>
                     {link.path.startsWith('http') || link.path.startsWith('mailto') || link.path.startsWith('#') ? (
                       <a
                         href={link.path}
-                        className="text-muted-foreground text-sm hover:text-primary transition-colors"
+                        className="text-muted-foreground text-sm hover:text-primary transition-colors inline-block"
                       >
                         {link.name}
                       </a>
                     ) : (
                       <Link
                         to={link.path}
-                        className="text-muted-foreground text-sm hover:text-primary transition-colors"
+                        className="text-muted-foreground text-sm hover:text-primary transition-colors inline-block"
                       >
                         {link.name}
                       </Link>
@@ -139,8 +139,8 @@ export const Footer = () => {
           )) : null}
         </div>
 
-        <div className="mt-16 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-muted-foreground text-sm">
+        <div className="mt-8 sm:mt-12 md:mt-16 pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+          <p className="text-muted-foreground text-xs sm:text-sm text-center sm:text-left">
             © {new Date().getFullYear()} {content.copyrightText}
           </p>
         </div>
