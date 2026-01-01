@@ -38,8 +38,13 @@ export const ServicesManager = () => {
   }, []);
 
   const loadServices = async () => {
-    const loaded = await getServices();
-    setServices(loaded.sort((a, b) => a.order - b.order));
+    try {
+      const loaded = await getServices();
+      console.log('Loaded services:', loaded);
+      setServices(loaded.sort((a, b) => a.order - b.order));
+    } catch (error) {
+      console.error('Error loading services:', error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,11 +65,14 @@ export const ServicesManager = () => {
         });
       } else {
         const newService: Service = {
-          id: Date.now().toString(),
+          id: crypto.randomUUID(),
           ...formData,
           order: services.length + 1,
         };
+        console.log('Creating new service:', newService);
+        console.log('All services before save:', [...services, newService]);
         await saveServices([...services, newService]);
+        console.log('Service saved, reloading...');
         toast({
           title: "Success",
           description: "Service added successfully",

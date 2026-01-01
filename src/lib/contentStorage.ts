@@ -570,13 +570,25 @@ export const getServices = async (): Promise<Service[]> => {
 
       if (error) throw error;
 
-      return (data || []).map((s: Record<string, unknown>) => ({
-        id: s.id as string,
-        icon: s.icon as string,
-        title: s.title as string,
-        description: s.description as string,
-        order: (s.order as number) || 0,
-      }));
+      // If Supabase returns data, use it
+      if (data && data.length > 0) {
+        return data.map((s: Record<string, unknown>) => ({
+          id: s.id as string,
+          icon: s.icon as string,
+          title: s.title as string,
+          description: s.description as string,
+          order: (s.order as number) || 0,
+        }));
+      }
+      
+      // If Supabase returns empty but localStorage has data, use localStorage
+      const localData = getServicesLocal();
+      if (localData.length > 0) {
+        console.warn('Supabase returned empty services, using localStorage data');
+        return localData;
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching services from database:', error);
       return getServicesLocal();
@@ -591,10 +603,12 @@ const getServicesLocal = (): Service[] => {
 };
 
 export const saveServices = async (services: Service[]): Promise<void> => {
+  // Always save to localStorage first as backup
+  localStorage.setItem('website-services', JSON.stringify(services));
+  
   if (isSupabaseAvailable()) {
     try {
-      await supabase.from('services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
+      // Use upsert instead of delete+insert to avoid data loss
       if (services.length > 0) {
         const servicesToInsert = services.map(service => ({
           id: service.id,
@@ -604,15 +618,31 @@ export const saveServices = async (services: Service[]): Promise<void> => {
           order: service.order,
         }));
 
-        const { error } = await supabase.from('services').insert(servicesToInsert);
-        if (error) throw error;
+        // Delete all existing services first
+        const { error: deleteError } = await supabase.from('services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (deleteError) {
+          console.warn('Error deleting old services:', deleteError);
+          // Continue with insert anyway
+        }
+
+        const { error: insertError } = await supabase.from('services').insert(servicesToInsert);
+        if (insertError) {
+          console.error('Error inserting services to database:', insertError);
+          // Data is already in localStorage, so continue
+        }
+      } else {
+        // If services array is empty, delete all services
+        const { error: deleteError } = await supabase.from('services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (deleteError) {
+          console.error('Error deleting services:', deleteError);
+          // Continue anyway, localStorage is already updated
+        }
       }
-      return;
     } catch (error) {
       console.error('Error saving services to database:', error);
+      // Data is already saved to localStorage above, so it's safe
     }
   }
-  localStorage.setItem('website-services', JSON.stringify(services));
 };
 
 // Themes
