@@ -13,7 +13,7 @@ import {
   type AboutContent,
   type HeroContent,
 } from "@/lib/contentStorage";
-import { UploadcareUploader } from "@/components/ui/UploadcareUploader";
+import { CloudinaryUploader } from "@/components/ui/CloudinaryUploader";
 
 export const AboutManager = () => {
   const [content, setContent] = useState<AboutContent | null>(null);
@@ -470,7 +470,7 @@ export const AboutManager = () => {
               This image appears in the hero section and about page. Use a square image (recommended: 600x600px or larger).
             </p>
             <div className="space-y-4">
-                <UploadcareUploader
+                <CloudinaryUploader
                   value={formData.imageUrl}
                   onChange={(url) => setFormData({ ...formData, imageUrl: url })}
                   imagesOnly={true}

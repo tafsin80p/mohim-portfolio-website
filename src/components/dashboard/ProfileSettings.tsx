@@ -3,31 +3,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useUser } from "@clerk/clerk-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UploadcareUploader } from "@/components/ui/UploadcareUploader";
 
 interface ProfileSettingsProps {
   onClose?: () => void;
 }
 
 export const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
-  const { user, refreshUser } = useAuth();
+  const { user: clerkUser } = useUser();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
-    avatar_url: "",
   });
+
+  // Convert Clerk user to compatible format
+  const user = clerkUser ? {
+    id: clerkUser.id,
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    full_name: clerkUser.firstName && clerkUser.lastName 
+      ? `${clerkUser.firstName} ${clerkUser.lastName}` 
+      : clerkUser.firstName || clerkUser.lastName || undefined,
+    avatar_url: clerkUser.imageUrl || undefined,
+    created_at: clerkUser.createdAt?.toISOString() || new Date().toISOString(),
+  } : null;
 
   useEffect(() => {
     if (user) {
       setFormData({
         full_name: user.full_name || "",
         email: user.email || "",
-        avatar_url: user.avatar_url || "",
       });
     }
   }, [user]);
@@ -37,77 +44,33 @@ export const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
     setIsLoading(true);
 
     try {
-      const url = import.meta.env.VITE_SUPABASE_URL;
-      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const isAvailable = !!(url && key && url !== 'https://placeholder.supabase.co' && key !== 'placeholder-key');
+      if (!clerkUser) {
+        throw new Error("User not found");
+      }
 
-      if (isAvailable && user) {
-        // Update user metadata in Supabase
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: {
-            full_name: formData.full_name,
-            avatar_url: formData.avatar_url || undefined,
-          },
-        });
+      // Update user in Clerk
+      const nameParts = formData.full_name.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
 
-        if (updateError) throw updateError;
+      await clerkUser.update({
+        firstName: firstName,
+        lastName: lastName || undefined,
+      });
 
-        // Update email if changed
-        if (formData.email !== user.email) {
-          const { error: emailError } = await supabase.auth.updateUser({
-            email: formData.email,
-          });
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
 
-          if (emailError) throw emailError;
-        }
-
-        // Refresh user data
-        if (refreshUser) {
-          await refreshUser();
-        } else {
-          // Fallback: reload page to refresh user data
-          window.location.reload();
-        }
-
-        toast({
-          title: "Success",
-          description: "Profile updated successfully",
-        });
-
-        // Close dialog after successful update
-        if (onClose) {
-          setTimeout(() => onClose(), 500);
-        }
-      } else {
-        // Fallback to localStorage
-        const currentUser = JSON.parse(localStorage.getItem('local-auth-user') || '{}');
-        const updatedUser = {
-          ...currentUser,
-          full_name: formData.full_name,
-          email: formData.email,
-        };
-        localStorage.setItem('local-auth-user', JSON.stringify(updatedUser));
-        if (refreshUser) {
-          await refreshUser();
-        } else {
-          window.location.reload();
-        }
-
-        toast({
-          title: "Success",
-          description: "Profile updated successfully",
-        });
-
-        // Close dialog after successful update
-        if (onClose) {
-          setTimeout(() => onClose(), 500);
-        }
+      if (onClose) {
+        onClose();
       }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update profile",
+        description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -128,23 +91,14 @@ export const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
           <h3 className="font-mono font-semibold text-lg">Profile Picture</h3>
           <div className="flex items-center gap-6">
             <Avatar className="w-24 h-24 border-2 border-border">
-              <AvatarImage src={formData.avatar_url} alt={formData.full_name || formData.email || "User"} />
+              <AvatarImage src={clerkUser?.imageUrl} alt={formData.full_name || formData.email || "User"} />
               <AvatarFallback className="bg-primary/10 text-primary font-semibold text-2xl">
                 {(formData.full_name || formData.email || "U").charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <Label>Upload Profile Image</Label>
-              <UploadcareUploader
-                value={formData.avatar_url}
-                onChange={(url) => setFormData({ ...formData, avatar_url: url })}
-                imagesOnly={true}
-                crop="1:1"
-                label="Upload Image"
-                showPreview={false}
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Recommended: Square image (400x400px or larger). JPG, PNG, or GIF.
+              <p className="text-sm text-muted-foreground">
+                Profile picture is managed by Clerk. Update it in your Clerk account settings.
               </p>
             </div>
           </div>
@@ -169,12 +123,12 @@ export const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="your.email@example.com"
-                disabled={isLoading}
+                disabled={true}
+                className="bg-muted cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">
-                Changing your email will require verification.
+                Email is managed by Clerk. To change it, please use Clerk's user management.
               </p>
             </div>
           </div>
@@ -189,4 +143,3 @@ export const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
     </div>
   );
 };
-

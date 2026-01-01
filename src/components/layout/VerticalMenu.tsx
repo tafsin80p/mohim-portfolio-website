@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, CheckSquare, Layers, FileText, Tags, MessageSquare, Mail, Edit, User, LogOut, Menu, X, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@clerk/clerk-react";
 import { useTheme } from "@/hooks/useTheme";
 import {
   DropdownMenu,
@@ -40,7 +40,7 @@ const bottomMenuItems = [
 
 export const VerticalMenu = () => {
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { isSignedIn, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -48,7 +48,7 @@ export const VerticalMenu = () => {
     await signOut();
   };
 
-  const visibleItems = menuItems.filter(item => !item.requireAuth || user);
+  const visibleItems = menuItems.filter(item => !item.requireAuth || isSignedIn);
   const visibleBottomItems = bottomMenuItems;
 
   return (
@@ -93,7 +93,7 @@ export const VerticalMenu = () => {
           </button>
           
           {/* Account Menu */}
-          {user && (
+          {isSignedIn && (
             <>
               <div className="w-8 h-px bg-border my-1" />
               <DropdownMenu>
@@ -169,7 +169,7 @@ export const VerticalMenu = () => {
                 <span className="font-medium">{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
               </button>
               
-              {user && (
+              {isSignedIn && (
                 <>
                   <div className="h-px bg-border my-2" />
                   <button

@@ -97,9 +97,15 @@ export const useColorTheme = () => {
     root.style.setProperty("--sidebar-primary", theme.primaryHsl);
     root.style.setProperty("--sidebar-ring", theme.primaryHsl);
 
-    // Update gradient
-    const hue = theme.primaryHsl.split(" ")[0];
-    root.style.setProperty("--gradient-primary", `linear-gradient(135deg, hsl(${hue} 72% 56%), hsl(${parseInt(hue) + 16} 80% 45%))`);
+    // Update gradient with proper hue calculation
+    const hue = parseInt(theme.primaryHsl.split(" ")[0]);
+    const saturation = theme.primaryHsl.split(" ")[1];
+    const lightness = theme.primaryHsl.split(" ")[2];
+    const nextHue = hue + 16 > 360 ? hue + 16 - 360 : hue + 16;
+    root.style.setProperty("--gradient-primary", `linear-gradient(135deg, hsl(${hue} ${saturation} ${lightness}), hsl(${nextHue} 80% 45%))`);
+    
+    // Update glow-soft to match the theme
+    root.style.setProperty("--glow-soft", theme.glow.replace("0.3", "0.15"));
 
     // Save to localStorage (only if auto rotation is disabled)
     if (typeof window !== "undefined" && !isAutoColorRotationEnabled()) {

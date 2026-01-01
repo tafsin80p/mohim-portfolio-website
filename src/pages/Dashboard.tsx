@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate, Link } from "react-router-dom";
 import { ProjectsManager } from "@/components/dashboard/ProjectsManager";
 import { BlogManager } from "@/components/dashboard/BlogManager";
@@ -53,11 +53,23 @@ import {
 } from "@/components/ui/sheet";
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { signOut } = useClerkAuth();
+  const { user: clerkUser } = useUser();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Convert Clerk user to compatible format
+  const user = clerkUser ? {
+    id: clerkUser.id,
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    full_name: clerkUser.firstName && clerkUser.lastName 
+      ? `${clerkUser.firstName} ${clerkUser.lastName}` 
+      : clerkUser.firstName || clerkUser.lastName || undefined,
+    avatar_url: clerkUser.imageUrl || undefined,
+    created_at: clerkUser.createdAt?.toISOString() || new Date().toISOString(),
+  } : null;
 
   const handleSignOut = async () => {
     await signOut();

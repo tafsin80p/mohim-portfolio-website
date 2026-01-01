@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UploadcareUploader } from "@/components/ui/UploadcareUploader";
+import { CloudinaryUploader } from "@/components/ui/CloudinaryUploader";
 
 export const BlogManager = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -230,7 +230,7 @@ export const BlogManager = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="image_url">Featured Image</Label>
-                <UploadcareUploader
+                <CloudinaryUploader
                   value={formData.image_url}
                   onChange={(url) => setFormData({ ...formData, image_url: url })}
                   imagesOnly={true}

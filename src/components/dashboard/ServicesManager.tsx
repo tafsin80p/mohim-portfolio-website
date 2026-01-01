@@ -128,9 +128,23 @@ export const ServicesManager = () => {
           <h2 className="font-mono text-2xl font-bold">Services</h2>
           <p className="text-muted-foreground text-sm">Manage your service offerings</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            resetForm();
+          } else if (!editingService) {
+            // Reset form when opening for new service
+            setEditingService(null);
+            setFormData({
+              icon: "Settings",
+              title: "",
+              description: "",
+              order: 1,
+            });
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm} className="gap-2">
+            <Button className="gap-2">
               <Plus className="w-4 h-4" />
               Add Service
             </Button>
@@ -177,10 +191,21 @@ export const ServicesManager = () => {
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} disabled={isLoading}>
                   Cancel
                 </Button>
-                <Button type="submit">{editingService ? "Update" : "Add"} Service</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {editingService ? "Updating..." : "Adding..."}
+                    </>
+                  ) : (
+                    <>
+                      {editingService ? "Update" : "Add"} Service
+                    </>
+                  )}
+                </Button>
               </div>
             </form>
           </DialogContent>

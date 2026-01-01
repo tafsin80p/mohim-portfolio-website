@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UploadcareUploader } from "@/components/ui/UploadcareUploader";
+import { CloudinaryUploader } from "@/components/ui/CloudinaryUploader";
 
 export const ProjectsManager = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -179,7 +179,7 @@ export const ProjectsManager = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="image">Project Image</Label>
-                <UploadcareUploader
+                <CloudinaryUploader
                   value={formData.image}
                   onChange={(url) => setFormData({ ...formData, image: url })}
                   imagesOnly={true}

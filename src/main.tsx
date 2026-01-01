@@ -64,16 +64,24 @@ const initializeThemes = () => {
     root.style.setProperty("--glow-primary", theme.glow);
     root.style.setProperty("--sidebar-primary", theme.primaryHsl);
     root.style.setProperty("--sidebar-ring", theme.primaryHsl);
+    
+    // Update gradient with proper hue calculation (using theme's saturation/lightness for first color)
+    const hslParts = theme.primaryHsl.split(" ");
+    const hue = parseInt(hslParts[0]);
+    const saturation = hslParts[1] || "72%";
+    const lightness = hslParts[2] || "56%";
+    const nextHue = hue + 16 > 360 ? hue + 16 - 360 : hue + 16;
+    root.style.setProperty("--gradient-primary", `linear-gradient(135deg, hsl(${hue} ${saturation} ${lightness}), hsl(${nextHue} 80% 45%))`);
+    
+    // Update glow-soft to match the theme
+    root.style.setProperty("--glow-soft", theme.glow.replace("0.3", "0.15"));
   }
 };
 
 // Initialize themes immediately to prevent flash
 initializeThemes();
 
-// Set Uploadcare public key from environment variable if available
-if (import.meta.env.VITE_UPLOADCARE_PUBLIC_KEY && typeof window !== "undefined") {
-  (window as any).UPLOADCARE_PUBLIC_KEY = import.meta.env.VITE_UPLOADCARE_PUBLIC_KEY;
-}
+// Cloudinary configuration is handled in the CloudinaryUploader component
 
 // Error handling for root render
 try {

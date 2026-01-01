@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UploadcareUploader } from "@/components/ui/UploadcareUploader";
+import { CloudinaryUploader } from "@/components/ui/CloudinaryUploader";
 
 export const ThemesManager = () => {
   const [themes, setThemes] = useState<Theme[]>([]);
@@ -180,7 +180,7 @@ export const ThemesManager = () => {
 
               <div className="space-y-2">
                 <Label>Preview Image</Label>
-                <UploadcareUploader
+                <CloudinaryUploader
                   value={formData.image}
                   onChange={(url) => setFormData({ ...formData, image: url })}
                   imagesOnly={true}
@@ -211,7 +211,7 @@ export const ThemesManager = () => {
 
               <div className="space-y-2">
                 <Label>Theme File (.zip)</Label>
-                <UploadcareUploader
+                <CloudinaryUploader
                   value={formData.fileUrl}
                   onChange={(url) => setFormData({ ...formData, fileUrl: url })}
                   imagesOnly={false}

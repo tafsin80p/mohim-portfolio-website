@@ -201,6 +201,14 @@
   .animation-delay-400 {
     animation-delay: 400ms;
   }
+
+  .skills-carousel {
+    animation: scroll 30s linear infinite;
+  }
+
+  .skills-carousel:hover {
+    animation-play-state: paused;
+  }
 }
 
 @keyframes fadeUp {
@@ -246,6 +254,15 @@
 
   50% {
     transform: translateY(-10px);
+  }
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
   }
 }
 

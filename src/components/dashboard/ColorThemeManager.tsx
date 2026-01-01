@@ -24,16 +24,22 @@ export const ColorThemeManager = () => {
   }, [colorTheme]);
 
   const handleColorChange = (theme: ColorTheme) => {
-    // Disable auto rotation when manually selecting a theme
+    // If auto rotation is enabled, just preview the theme but don't disable rotation
+    // Auto rotation will continue to work for visitors
     if (autoRotationEnabled) {
-      setAutoColorRotationEnabled(false);
-      setAutoRotationEnabled(false);
+      setColorTheme(theme);
+      toast({
+        title: "Theme preview",
+        description: `Previewing ${colorThemes[theme].name} theme. Auto rotation remains enabled for visitors.`,
+      });
+    } else {
+      // Only set theme if auto rotation is disabled
+      setColorTheme(theme);
+      toast({
+        title: "Color theme updated",
+        description: `Changed to ${colorThemes[theme].name} theme`,
+      });
     }
-    setColorTheme(theme);
-    toast({
-      title: "Color theme updated",
-      description: `Changed to ${colorThemes[theme].name} theme`,
-    });
   };
 
   const handleAutoRotationToggle = (enabled: boolean) => {

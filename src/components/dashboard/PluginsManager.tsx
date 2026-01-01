@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UploadcareUploader } from "@/components/ui/UploadcareUploader";
+import { CloudinaryUploader } from "@/components/ui/CloudinaryUploader";
 
 export const PluginsManager = () => {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
@@ -170,7 +170,7 @@ export const PluginsManager = () => {
 
               <div className="space-y-2">
                 <Label>Plugin Image / Icon</Label>
-                <UploadcareUploader
+                <CloudinaryUploader
                   value={formData.image}
                   onChange={(url) => setFormData({ ...formData, image: url })}
                   imagesOnly={true}
@@ -201,7 +201,7 @@ export const PluginsManager = () => {
 
               <div className="space-y-2">
                 <Label>Plugin File (.zip)</Label>
-                <UploadcareUploader
+                <CloudinaryUploader
                   value={formData.fileUrl}
                   onChange={(url) => setFormData({ ...formData, fileUrl: url })}
                   imagesOnly={false}
