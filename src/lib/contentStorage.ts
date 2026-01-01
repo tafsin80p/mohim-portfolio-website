@@ -775,34 +775,46 @@ export const savePlugins = async (plugins: Plugin[]): Promise<void> => {
 
 // About Content
 export const getAboutContent = async (): Promise<AboutContent> => {
+  // Always use localStorage for imageUrl - don't load from Supabase
+  const localContent = getAboutContentLocal();
+  
   if (isSupabaseAvailable()) {
     try {
       const { data, error } = await supabase
         .from('about_content')
-        .select('*')
+        .select('bio, skills, stats') // Don't select image_url
         .eq('id', 'default')
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
+        // Load bio, skills, stats from Supabase, but keep imageUrl from localStorage
         return {
           bio: data.bio || [],
           skills: data.skills || [],
           stats: data.stats || {},
-          imageUrl: data.image_url,
+          imageUrl: localContent.imageUrl, // Always use localStorage for image
         };
       }
     } catch (error) {
       console.error('Error fetching about content from database:', error);
     }
   }
-  return getAboutContentLocal();
+  return localContent;
 };
 
 const getAboutContentLocal = (): AboutContent => {
   const data = localStorage.getItem('website-about');
-  if (data) return JSON.parse(data);
+  if (data) {
+    const parsed = JSON.parse(data);
+    // Clean up imageUrl - convert empty string, null, or undefined to undefined, then remove the property
+    if (parsed.imageUrl === "" || parsed.imageUrl === null || parsed.imageUrl === undefined || (typeof parsed.imageUrl === 'string' && !parsed.imageUrl.trim())) {
+      delete parsed.imageUrl; // Remove the property entirely
+    }
+    console.log('Loaded from localStorage:', parsed);
+    return parsed;
+  }
 
   const defaultContent: AboutContent = {
     bio: [
@@ -821,30 +833,110 @@ const getAboutContentLocal = (): AboutContent => {
       clients: "100+",
       coffee: "∞",
     },
+    // Explicitly set imageUrl to undefined (not included in default)
+    imageUrl: undefined,
   };
 
   localStorage.setItem('website-about', JSON.stringify(defaultContent));
   return defaultContent;
 };
 
+// Utility function to explicitly clear the image_url (localStorage only, not Supabase)
+export const clearAboutImage = async (): Promise<void> => {
+  // Only clear from localStorage - images are not stored in Supabase
+  const localData = localStorage.getItem('website-about');
+  if (localData) {
+    const parsed = JSON.parse(localData);
+    delete parsed.imageUrl;
+    localStorage.setItem('website-about', JSON.stringify(parsed));
+    console.log('Image cleared from localStorage');
+  }
+};
+
 export const saveAboutContent = async (content: AboutContent): Promise<void> => {
+  // Clean up imageUrl - convert empty string, null, or whitespace-only to undefined
+  const cleanedImageUrl = content.imageUrl && content.imageUrl.trim() ? content.imageUrl.trim() : undefined;
+  
+  // Create cleaned content object WITHOUT imageUrl if it's undefined
+  const cleanedContent: any = {
+    bio: content.bio,
+    skills: content.skills,
+    stats: content.stats,
+  };
+  
+  // Only include imageUrl if it has a value
+  if (cleanedImageUrl) {
+    cleanedContent.imageUrl = cleanedImageUrl;
+  }
+  
+  console.log('Saving about content (cleaned):', cleanedContent);
+  
+  // Always save imageUrl to localStorage only (not Supabase)
+  const contentToStore = { ...cleanedContent };
+  if (!cleanedImageUrl) {
+    delete contentToStore.imageUrl;
+  }
+  localStorage.setItem('website-about', JSON.stringify(contentToStore));
+  console.log('Saved imageUrl to localStorage:', contentToStore);
+  
   if (isSupabaseAvailable()) {
     try {
-      const { error } = await supabase.from('about_content').upsert({
+      // Build the update object - DON'T include image_url (images stored in localStorage only)
+      const updateData: any = {
         id: 'default',
-        bio: content.bio,
-        skills: content.skills,
-        stats: content.stats,
-        image_url: content.imageUrl,
+        bio: cleanedContent.bio,
+        skills: cleanedContent.skills,
+        stats: cleanedContent.stats,
         updated_at: new Date().toISOString(),
-      });
-      if (error) throw error;
+        // image_url is NOT saved to Supabase - only stored in localStorage
+      };
+      
+      console.log('Updating Supabase (without image_url):', updateData);
+      
+      // First try to update, if no row exists, then insert
+      const { data: existingData } = await supabase
+        .from('about_content')
+        .select('id')
+        .eq('id', 'default')
+        .single();
+      
+      let error;
+      if (existingData) {
+        // Row exists, use update
+        const { error: updateError } = await supabase
+          .from('about_content')
+          .update(updateData)
+          .eq('id', 'default');
+        error = updateError;
+      } else {
+        // Row doesn't exist, use insert
+        const { error: insertError } = await supabase
+          .from('about_content')
+          .insert(updateData);
+        error = insertError;
+      }
+      
+      if (error) {
+        console.error('Supabase save error:', error);
+        throw error;
+      }
+      console.log('Saved to Supabase successfully (image stored in localStorage only)');
       return;
     } catch (error) {
       console.error('Error saving about content to database:', error);
+      // Fall back to localStorage
+      if (!cleanedImageUrl) {
+        delete cleanedContent.imageUrl;
+      }
+      localStorage.setItem('website-about', JSON.stringify(cleanedContent));
     }
+  } else {
+    if (!cleanedImageUrl) {
+      delete cleanedContent.imageUrl;
+    }
+    localStorage.setItem('website-about', JSON.stringify(cleanedContent));
+    console.log('Saved to localStorage only:', cleanedContent);
   }
-  localStorage.setItem('website-about', JSON.stringify(content));
 };
 
 // Hero Content

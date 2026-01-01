@@ -10,6 +10,7 @@ import {
   saveAboutContent,
   getHeroContent,
   saveHeroContent,
+  clearAboutImage,
   type AboutContent,
   type HeroContent,
 } from "@/lib/contentStorage";
@@ -69,7 +70,7 @@ export const AboutManager = () => {
       projects: loadedAbout.stats.projects,
       clients: loadedAbout.stats.clients,
       coffee: loadedAbout.stats.coffee,
-      imageUrl: loadedAbout.imageUrl || "",
+      imageUrl: loadedAbout.imageUrl || "", // Set to empty string if undefined/null
     });
     setHeroForm({
       tagline: loadedHero.tagline,
@@ -102,17 +103,25 @@ export const AboutManager = () => {
     setIsLoading(true);
     
     try {
+      // Only include imageUrl if it has a non-empty value
+      const imageUrlValue = formData.imageUrl.trim() || undefined;
+      
       const updatedAbout: AboutContent = {
-      bio: formData.bio.filter(b => b.trim()),
-      skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
-      stats: {
-        experience: formData.experience,
-        projects: formData.projects,
-        clients: formData.clients,
-        coffee: formData.coffee,
-      },
-      imageUrl: formData.imageUrl || undefined,
-    };
+        bio: formData.bio.filter(b => b.trim()),
+        skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
+        stats: {
+          experience: formData.experience,
+          projects: formData.projects,
+          clients: formData.clients,
+          coffee: formData.coffee,
+        },
+        // Only include imageUrl if it has a value, otherwise omit it completely
+        ...(imageUrlValue && { imageUrl: imageUrlValue }),
+      };
+      
+      console.log('handleSubmit - formData.imageUrl:', formData.imageUrl);
+      console.log('handleSubmit - imageUrlValue:', imageUrlValue);
+      console.log('handleSubmit - updatedAbout:', updatedAbout);
     const updatedHero: HeroContent = {
       tagline: heroForm.tagline,
       headlineLine1: heroForm.headlineLine1,
@@ -135,6 +144,7 @@ export const AboutManager = () => {
       cvUrl: heroForm.cvUrl || undefined,
     };
 
+      console.log('Saving about content:', updatedAbout);
       await Promise.all([
         saveAboutContent(updatedAbout),
         saveHeroContent(updatedHero),
@@ -144,6 +154,7 @@ export const AboutManager = () => {
         description: "About content updated successfully",
       });
       await loadContent();
+      console.log('Content reloaded after save');
     } catch (error) {
       console.error('Error saving content:', error);
       toast({
@@ -465,19 +476,111 @@ export const AboutManager = () => {
           </div>
 
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h3 className="font-mono font-semibold text-lg">Profile Image</h3>
+            <h3 className="font-mono font-semibold text-lg">Profile Image (Optional)</h3>
             <p className="text-sm text-muted-foreground">
-              This image appears in the hero section and about page. Use a square image (recommended: 600x600px or larger).
+              This image appears in the hero section and about page. Use a square image (recommended: 600x600px or larger). Leave empty to hide the profile image.
             </p>
             <div className="space-y-4">
                 <CloudinaryUploader
                   value={formData.imageUrl}
-                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url || "" })}
                   imagesOnly={true}
                   crop="1:1"
                   label="Upload Profile Image"
                   showPreview={true}
                 />
+                {formData.imageUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      // Clear image immediately in UI
+                      setFormData({ ...formData, imageUrl: "" });
+                      
+                      // Save immediately without waiting for form submit
+                      if (content && hero) {
+                        setIsLoading(true);
+                        try {
+                          // Create updated content WITHOUT imageUrl field - explicitly set to undefined
+                          const updatedAbout: AboutContent = {
+                            bio: formData.bio.filter(b => b.trim()),
+                            skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
+                            stats: {
+                              experience: formData.experience,
+                              projects: formData.projects,
+                              clients: formData.clients,
+                              coffee: formData.coffee,
+                            },
+                            imageUrl: undefined, // Explicitly set to undefined to ensure removal
+                          };
+                          
+                          console.log('Removing image, updatedAbout:', updatedAbout);
+                          console.log('Current content before removal:', content);
+                          
+                          // First explicitly clear the image from database
+                          await clearAboutImage();
+                          
+                          // Then save the updated content
+                          await saveAboutContent(updatedAbout);
+                          
+                          // Clear localStorage explicitly to remove any cached image
+                          const currentLocal = localStorage.getItem('website-about');
+                          if (currentLocal) {
+                            const parsed = JSON.parse(currentLocal);
+                            delete parsed.imageUrl;
+                            localStorage.setItem('website-about', JSON.stringify(parsed));
+                            console.log('Cleared imageUrl from localStorage:', parsed);
+                          }
+                          
+                          // Wait a bit to ensure save is complete
+                          await new Promise(resolve => setTimeout(resolve, 200));
+                          
+                          // Force reload by clearing cache
+                          const [reloadedAbout, reloadedHero] = await Promise.all([
+                            getAboutContent(),
+                            getHeroContent(),
+                          ]);
+                          
+                          console.log('Reloaded about content after removal:', reloadedAbout);
+                          console.log('imageUrl in reloaded:', reloadedAbout.imageUrl);
+                          
+                          // Update state with reloaded data
+                          setContent(reloadedAbout);
+                          setHero(reloadedHero);
+                          setFormData({
+                            bio: reloadedAbout.bio,
+                            skills: reloadedAbout.skills.join(", "),
+                            experience: reloadedAbout.stats.experience,
+                            projects: reloadedAbout.stats.projects,
+                            clients: reloadedAbout.stats.clients,
+                            coffee: reloadedAbout.stats.coffee,
+                            imageUrl: "", // Always set to empty string after removal
+                          });
+                          
+                          toast({
+                            title: "Success",
+                            description: "Profile image removed successfully",
+                          });
+                        } catch (error) {
+                          console.error('Error removing image:', error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to remove image. Please try again.",
+                            variant: "destructive",
+                          });
+                          // Reload anyway to get current state
+                          await loadContent();
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    {isLoading ? "Removing..." : "Remove Image"}
+                  </Button>
+                )}
             </div>
           </div>
 

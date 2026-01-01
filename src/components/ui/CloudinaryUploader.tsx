@@ -252,18 +252,6 @@ export const CloudinaryUploader = ({
             Cloudinary not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and either (VITE_CLOUDINARY_API_KEY + VITE_CLOUDINARY_API_SECRET) or VITE_CLOUDINARY_UPLOAD_PRESET in your .env file.
           </p>
         </div>
-        {value && (
-          <div className="mt-2">
-            <Label className="text-xs text-muted-foreground">Or enter URL manually:</Label>
-            <Input
-              type="url"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="mt-1"
-            />
-          </div>
-        )}
       </div>
     );
   }
@@ -353,17 +341,6 @@ export const CloudinaryUploader = ({
             <p className="text-xs text-muted-foreground break-all">{value}</p>
           </div>
         )}
-
-        <div className="mt-2">
-          <Label className="text-xs text-muted-foreground">Or enter URL manually:</Label>
-          <Input
-            type="url"
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="https://example.com/image.jpg"
-            className="mt-1"
-          />
-        </div>
       </div>
     </div>
   );

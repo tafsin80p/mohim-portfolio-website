@@ -75,12 +75,13 @@ const About = () => {
     <Layout>
       <section className="section-padding">
         <div className="container-custom">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className={`grid ${content.imageUrl ? 'lg:grid-cols-2' : ''} gap-12 items-center`}>
             {/* Image */}
+            {content.imageUrl && (
             <div className="relative animate-fade-up">
               <div className="aspect-square rounded-2xl overflow-hidden bg-card border border-border">
                 <img
-                  src={content.imageUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=600&fit=crop&crop=face"}
+                  src={content.imageUrl}
                   alt="Developer portrait"
                   className="w-full h-full object-cover"
                 />
@@ -91,9 +92,10 @@ const About = () => {
                 <p className="text-muted-foreground text-xs">Since 2016</p>
               </div>
             </div>
+            )}
 
             {/* Content */}
-            <div>
+            <div className={content.imageUrl ? '' : 'max-w-3xl mx-auto'}>
               <SectionHeader
                 tag="// About Me"
                 title="Passionate WordPress Developer"
