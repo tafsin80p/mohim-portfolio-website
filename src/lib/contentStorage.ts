@@ -656,17 +656,29 @@ export const getThemes = async (): Promise<Theme[]> => {
 
       if (error) throw error;
 
-      return (data || []).map((t: Record<string, unknown>) => ({
-        id: t.id as string,
-        title: t.title as string,
-        description: t.description as string,
-        image: (t.image as string) || "",
-        tags: (t.tags as string[]) || [],
-        liveUrl: (t.live_url as string) || undefined,
-        githubUrl: (t.github_url as string) || undefined,
-        price: (t.price as string) || undefined,
-        fileUrl: (t.file_url as string) || undefined,
-      }));
+      // If Supabase returns data, use it
+      if (data && data.length > 0) {
+        return data.map((t: Record<string, unknown>) => ({
+          id: t.id as string,
+          title: t.title as string,
+          description: t.description as string,
+          image: (t.image as string) || "",
+          tags: (t.tags as string[]) || [],
+          liveUrl: (t.live_url as string) || undefined,
+          githubUrl: (t.github_url as string) || undefined,
+          price: (t.price as string) || undefined,
+          fileUrl: (t.file_url as string) || undefined,
+        }));
+      }
+      
+      // If Supabase returns empty but localStorage has data, use localStorage
+      const localData = getThemesLocal();
+      if (localData.length > 0) {
+        console.warn('Supabase returned empty themes, using localStorage data');
+        return localData;
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching themes from database:', error);
       return getThemesLocal();
@@ -681,9 +693,17 @@ const getThemesLocal = (): Theme[] => {
 };
 
 export const saveThemes = async (themes: Theme[]): Promise<void> => {
+  // Always save to localStorage first as backup
+  localStorage.setItem('website-themes', JSON.stringify(themes));
+  
   if (isSupabaseAvailable()) {
     try {
-      await supabase.from('themes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Delete all existing themes first
+      const { error: deleteError } = await supabase.from('themes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (deleteError) {
+        console.warn('Error deleting old themes:', deleteError);
+        // Continue with insert anyway
+      }
 
       if (themes.length > 0) {
         const themesToInsert = themes.map(theme => ({
@@ -698,15 +718,18 @@ export const saveThemes = async (themes: Theme[]): Promise<void> => {
           file_url: theme.fileUrl,
         }));
 
-        const { error } = await supabase.from('themes').insert(themesToInsert);
-        if (error) throw error;
+        const { error: insertError } = await supabase.from('themes').insert(themesToInsert);
+        if (insertError) {
+          console.error('Error inserting themes to database:', insertError);
+          // Data is already in localStorage, so continue
+        }
       }
       return;
     } catch (error) {
       console.error('Error saving themes to database:', error);
+      // Data is already saved to localStorage above, so it's safe
     }
   }
-  localStorage.setItem('website-themes', JSON.stringify(themes));
 };
 
 // Plugins
@@ -720,17 +743,29 @@ export const getPlugins = async (): Promise<Plugin[]> => {
 
       if (error) throw error;
 
-      return (data || []).map((p: Record<string, unknown>) => ({
-        id: p.id as string,
-        title: p.title as string,
-        description: p.description as string,
-        image: (p.image as string) || "",
-        tags: (p.tags as string[]) || [],
-        liveUrl: (p.live_url as string) || undefined,
-        githubUrl: (p.github_url as string) || undefined,
-        price: (p.price as string) || undefined,
-        fileUrl: (p.file_url as string) || undefined,
-      }));
+      // If Supabase returns data, use it
+      if (data && data.length > 0) {
+        return data.map((p: Record<string, unknown>) => ({
+          id: p.id as string,
+          title: p.title as string,
+          description: p.description as string,
+          image: (p.image as string) || "",
+          tags: (p.tags as string[]) || [],
+          liveUrl: (p.live_url as string) || undefined,
+          githubUrl: (p.github_url as string) || undefined,
+          price: (p.price as string) || undefined,
+          fileUrl: (p.file_url as string) || undefined,
+        }));
+      }
+      
+      // If Supabase returns empty but localStorage has data, use localStorage
+      const localData = getPluginsLocal();
+      if (localData.length > 0) {
+        console.warn('Supabase returned empty plugins, using localStorage data');
+        return localData;
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching plugins from database:', error);
       return getPluginsLocal();
@@ -745,9 +780,17 @@ const getPluginsLocal = (): Plugin[] => {
 };
 
 export const savePlugins = async (plugins: Plugin[]): Promise<void> => {
+  // Always save to localStorage first as backup
+  localStorage.setItem('website-plugins', JSON.stringify(plugins));
+  
   if (isSupabaseAvailable()) {
     try {
-      await supabase.from('plugins').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Delete all existing plugins first
+      const { error: deleteError } = await supabase.from('plugins').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (deleteError) {
+        console.warn('Error deleting old plugins:', deleteError);
+        // Continue with insert anyway
+      }
 
       if (plugins.length > 0) {
         const pluginsToInsert = plugins.map(plugin => ({
@@ -762,15 +805,18 @@ export const savePlugins = async (plugins: Plugin[]): Promise<void> => {
           file_url: plugin.fileUrl,
         }));
 
-        const { error } = await supabase.from('plugins').insert(pluginsToInsert);
-        if (error) throw error;
+        const { error: insertError } = await supabase.from('plugins').insert(pluginsToInsert);
+        if (insertError) {
+          console.error('Error inserting plugins to database:', insertError);
+          // Data is already in localStorage, so continue
+        }
       }
       return;
     } catch (error) {
       console.error('Error saving plugins to database:', error);
+      // Data is already saved to localStorage above, so it's safe
     }
   }
-  localStorage.setItem('website-plugins', JSON.stringify(plugins));
 };
 
 // About Content
